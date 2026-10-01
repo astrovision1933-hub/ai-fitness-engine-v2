@@ -1,0 +1,111 @@
+import { useAuth } from "@/hooks/use-auth";
+import { SignOutButton } from "@/components/SignOutButton";
+import { cn } from "@/lib/utils";
+import { NavLink, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+
+const PRIMARY_NAV = [
+  { to: "/dashboard", label: "HOME" },
+  { to: "/coach", label: "COACH" },
+  { to: "/workout", label: "WORKOUT" },
+  { to: "/profile", label: "PROFILE" },
+];
+
+const FUTURE_SLOTS = ["NUTRITION", "PROGRESS", "SUPPLEMENTS", "PRODUCTS", "REPORTS"];
+
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const now = useClock();
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* top command bar */}
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-2.5">
+          <button
+            className="flex items-center gap-2 text-left"
+            onClick={() => navigate("/dashboard")}
+          >
+            <span className="border border-terminal-green/50 bg-[#eef3ea] px-1.5 py-0.5 text-[11px] font-bold tracking-[0.2em] text-status-ok">
+              AFE
+            </span>
+            <span className="hidden text-xs font-semibold uppercase tracking-[0.22em] sm:inline">
+              AI Fitness Engine
+            </span>
+          </button>
+
+          <nav className="hidden items-center gap-1 md:flex">
+            {PRIMARY_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors",
+                    isActive
+                      ? "border border-terminal-green/50 bg-[#eef3ea] text-status-ok"
+                      : "border border-transparent text-muted-foreground hover:text-foreground",
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <span className="hidden text-[10px] text-muted-foreground lg:inline">
+              {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · SESSION ACTIVE
+            </span>
+            <SignOutButton />
+          </div>
+        </div>
+
+        {/* mobile nav */}
+        <nav className="flex justify-between gap-1 border-t border-border px-2 py-1.5 md:hidden">
+          {PRIMARY_NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                cn(
+                  "flex-1 px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  isActive ? "text-status-ok underline underline-offset-4" : "text-muted-foreground",
+                )
+              }
+            >
+              {item.label}
+              <span className="sr-only">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+          <span>AI FITNESS ENGINE — CORE v0.1 · PART 1/4</span>
+          <span className="flex flex-wrap items-center gap-3">
+            {FUTURE_SLOTS.map((slot) => (
+              <span key={slot} className="text-muted-foreground/50 line-through decoration-border">
+                {slot}
+              </span>
+            ))}
+          </span>
+          <span>SIGNED IN AS {user?.email ?? "GUEST"}</span>
+        </div>
+      </footer>
+    </div>
+  );
+}

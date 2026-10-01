@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 
@@ -153,12 +153,12 @@ export const generatePlan = mutation({
       }
     }
 
-    await ctx.runMutation(internal.memory.writeAuditLog, {
+    await ctx.runMutation(internal.services.memory.writeAuditLog, {
       userId,
       action: "workout_plan_generated",
       detail: name,
     });
-    await ctx.runMutation(internal.memory.createNotification, {
+    await ctx.runMutation(internal.services.memory.createNotification, {
       userId,
       type: "plan",
       title: "New training plan ready",
@@ -316,20 +316,20 @@ export const finishSession = mutation({
       notes: args.notes,
     });
 
-    await ctx.runMutation(internal.memory.writeMemory, {
+    await ctx.runMutation(internal.services.memory.writeMemory, {
       userId,
       scope: "event",
       key: "workout_completed",
       content: `Completed "${session.name}"${durationMinutes ? ` in ${durationMinutes} min` : ""}${args.difficultyFeedback ? ` — felt ${args.difficultyFeedback.replace(/_/g, " ")}` : ""}.`,
       source: "system_data",
     });
-    await ctx.runMutation(internal.memory.createNotification, {
+    await ctx.runMutation(internal.services.memory.createNotification, {
       userId,
       type: "workout",
       title: "Workout logged",
       body: `${session.name} completed.`,
     });
-    await ctx.runMutation(internal.memory.writeAuditLog, {
+    await ctx.runMutation(internal.services.memory.writeAuditLog, {
       userId,
       action: "workout_completed",
       detail: session.name,

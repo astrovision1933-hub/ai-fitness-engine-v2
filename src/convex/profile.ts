@@ -106,6 +106,7 @@ export const completeOnboarding = mutation({
     weightKg: v.number(),
     experience: experienceValidator,
     // step 2
+    // step 2
     goal: goalValidator,
     goalDescription: v.string(),
     targetDate: v.optional(v.string()),
@@ -173,6 +174,7 @@ export const completeOnboarding = mutation({
       sex: args.sex,
       heightCm: args.heightCm,
       weightKg: args.weightKg,
+      experience: args.experience,
       training: args.training,
       diet: args.diet,
       lifestyle: args.lifestyle,
@@ -215,7 +217,7 @@ export const completeOnboarding = mutation({
     });
 
     // Store experience as a long-term memory so the AI coach knows it.
-    await ctx.runMutation(internal.memory.writeMemory, {
+    await ctx.runMutation(internal.services.memory.writeMemory, {
       userId,
       scope: "long_term",
       key: "experience",
@@ -223,13 +225,13 @@ export const completeOnboarding = mutation({
       source: "user_provided",
     });
 
-    await ctx.runMutation(internal.memory.createNotification, {
+    await ctx.runMutation(internal.services.memory.createNotification, {
       userId,
       type: "assessment",
       title: "Fitness assessment ready",
       body: "Your structured assessment has been generated from your onboarding data.",
     });
-    await ctx.runMutation(internal.memory.writeAuditLog, {
+    await ctx.runMutation(internal.services.memory.writeAuditLog, {
       userId,
       action: "onboarding_completed",
       detail: `goal=${args.goal}`,
@@ -322,14 +324,14 @@ export const updateGoal = mutation({
     });
     await ctx.db.patch(profile._id, { activeGoalId: goalId });
 
-    await ctx.runMutation(internal.memory.writeMemory, {
+    await ctx.runMutation(internal.services.memory.writeMemory, {
       userId,
       scope: "event",
       key: "goal_update",
       content: `Goal changed to ${GOAL_LABELS[args.goal] ?? args.goal}: ${args.description}`,
       source: "user_provided",
     });
-    await ctx.runMutation(internal.memory.writeAuditLog, {
+    await ctx.runMutation(internal.services.memory.writeAuditLog, {
       userId,
       action: "goal_changed",
       detail: args.goal,
@@ -421,7 +423,7 @@ export const addMeasurement = mutation({
       weightKg: args.weightKg,
     });
 
-    await ctx.runMutation(internal.memory.writeMemory, {
+    await ctx.runMutation(internal.services.memory.writeMemory, {
       userId,
       scope: "event",
       key: "measurement",

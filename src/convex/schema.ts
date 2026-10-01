@@ -43,6 +43,8 @@ const schema = defineSchema(
       sex: v.optional(v.string()),
       heightCm: v.optional(v.number()),
       weightKg: v.optional(v.number()),
+      // step 3 experience
+      experience: v.optional(v.string()), // beginner | intermediate | advanced | competitive
       // step 4 training
       training: v.optional(v.object({
         daysPerWeek: v.number(),

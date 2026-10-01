@@ -13,6 +13,10 @@ import "./index.css";
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const Coach = lazy(() => import("./pages/Coach.tsx"));
+const Workout = lazy(() => import("./pages/Workout.tsx"));
+const Profile = lazy(() => import("./pages/Profile.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -129,6 +133,38 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Dashboard />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/onboarding"
+                element={
+                  <RequireAuth>
+                    <Onboarding />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/coach"
+                element={
+                  <RequireAuth>
+                    <Coach />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/workout"
+                element={
+                  <RequireAuth>
+                    <Workout />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <RequireAuth>
+                    <Profile />
                   </RequireAuth>
                 }
               />

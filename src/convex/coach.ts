@@ -32,7 +32,7 @@ export const orchestrateCoachReply = internalAction({
         intentConfidence: 0.99,
         safetyFlag: true,
       });
-      await ctx.runMutation(internal.memory.writeAuditLog, {
+      await ctx.runMutation(internal.services.memory.writeAuditLog, {
         userId: args.userId,
         action: "safety_block",
         detail: `category=${safety.category}`,
@@ -79,7 +79,7 @@ export const orchestrateCoachReply = internalAction({
 
     // 6. MEMORY UPDATE — event memory for progress/goal updates, long-term for durable facts
     if (intent === "progress_update") {
-      await ctx.runMutation(internal.memory.writeMemory, {
+      await ctx.runMutation(internal.services.memory.writeMemory, {
         userId: args.userId,
         scope: "event",
         key: "progress_update",
@@ -87,7 +87,7 @@ export const orchestrateCoachReply = internalAction({
         source: "user_provided",
       });
     } else if (intent === "goal_update") {
-      await ctx.runMutation(internal.memory.writeMemory, {
+      await ctx.runMutation(internal.services.memory.writeMemory, {
         userId: args.userId,
         scope: "event",
         key: "goal_update",
