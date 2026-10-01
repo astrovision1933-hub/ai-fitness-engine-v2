@@ -8,10 +8,18 @@ const PRIMARY_NAV = [
   { to: "/dashboard", label: "HOME" },
   { to: "/coach", label: "COACH" },
   { to: "/workout", label: "WORKOUT" },
+  { to: "/nutrition", label: "NUTRITION" },
+  { to: "/progress", label: "PROGRESS" },
   { to: "/profile", label: "PROFILE" },
 ];
 
-const FUTURE_SLOTS = ["NUTRITION", "PROGRESS", "SUPPLEMENTS", "PRODUCTS", "REPORTS"];
+const SECONDARY_NAV = [
+  { to: "/goals", label: "GOALS" },
+  { to: "/checkin", label: "CHECK-IN" },
+  { to: "/bodybuilding", label: "BODYBUILDING" },
+];
+
+const FUTURE_SLOTS = ["SUPPLEMENTS", "PRODUCTS", "REPORTS"];
 
 function useClock() {
   const [now, setNow] = useState(() => new Date());
@@ -51,10 +59,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    "px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors",
+                    "px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors",
                     isActive
                       ? "border border-terminal-green/50 bg-[#eef3ea] text-status-ok"
                       : "border border-transparent text-muted-foreground hover:text-foreground",
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            <span className="mx-1 h-4 w-px bg-border" />
+            {SECONDARY_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "px-2 py-1.5 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                    isActive
+                      ? "border border-terminal-amber/50 bg-[#fdf3e7] text-status-warn"
+                      : "border border-transparent text-muted-foreground/70 hover:text-foreground",
                   )
                 }
               >
@@ -72,20 +97,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* mobile nav */}
-        <nav className="flex justify-between gap-1 border-t border-border px-2 py-1.5 md:hidden">
-          {PRIMARY_NAV.map((item) => (
+        <nav className="flex justify-between gap-1 overflow-x-auto border-t border-border px-2 py-1.5 md:hidden">
+          {[...PRIMARY_NAV, ...SECONDARY_NAV].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
                 cn(
-                  "flex-1 px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em]",
+                  "flex-1 whitespace-nowrap px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.12em]",
                   isActive ? "text-status-ok underline underline-offset-4" : "text-muted-foreground",
                 )
               }
             >
               {item.label}
-              <span className="sr-only">{item.label}</span>
             </NavLink>
           ))}
         </nav>

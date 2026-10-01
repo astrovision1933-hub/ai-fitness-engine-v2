@@ -246,6 +246,203 @@ const schema = defineSchema(
       detail: v.optional(v.string()),
       createdAt: v.number(),
     }).index("by_user", ["userId"]),
+
+    // ===================================================================
+    // PART 2 — NUTRITION + ACTIVITY + PROGRESS + BODYBUILDING
+    // ===================================================================
+
+    foods: defineTable({
+      name: v.string(),
+      aliases: v.array(v.string()),
+      category: v.string(), // dairy | legume | grain | egg | produce | nuts_seeds | other
+      dietTags: v.array(v.string()), // vegetarian | vegan | eggetarian | non_vegetarian | indian
+      servingSize: v.string(), // "100g", "1 cup (240ml)"
+      servingGrams: v.optional(v.number()),
+      calories: v.number(),
+      proteinG: v.number(),
+      carbsG: v.number(),
+      fatG: v.number(),
+      isEstimate: v.boolean(), // always true — values are approximations
+      isPublic: v.boolean(),
+    }).index("by_name", ["name"]),
+
+    foodNutrients: defineTable({
+      foodId: v.id("foods"),
+      label: v.string(),
+      amount: v.number(),
+      unit: v.string(),
+    }).index("by_food", ["foodId"]),
+
+    mealPlans: defineTable({
+      userId: v.id("users"),
+      date: v.string(), // yyyy-mm-dd local
+      targets: v.object({
+        calories: v.number(),
+        proteinG: v.number(),
+        carbsG: v.number(),
+        fatG: v.number(),
+        waterMl: v.number(),
+      }),
+      meals: v.array(
+        v.object({
+          slot: v.string(), // breakfast | lunch | pre_workout | post_workout | dinner | snacks
+          name: v.string(),
+          items: v.array(
+            v.object({
+              foodName: v.string(),
+              quantity: v.string(),
+              calories: v.number(),
+              proteinG: v.number(),
+              carbsG: v.number(),
+              fatG: v.number(),
+            }),
+          ),
+          estimatedCalories: v.number(),
+          estimatedProteinG: v.number(),
+        }),
+      ),
+      notes: v.optional(v.string()),
+      source: v.string(), // engine
+      isActive: v.boolean(),
+      createdAt: v.number(),
+    })
+      .index("by_user_date", ["userId", "date"])
+      .index("by_user_active", ["userId", "isActive"]),
+
+    mealLogs: defineTable({
+      userId: v.id("users"),
+      date: v.string(),
+      mealSlot: v.string(),
+      foodName: v.string(),
+      quantity: v.string(),
+      calories: v.number(),
+      proteinG: v.number(),
+      carbsG: v.number(),
+      fatG: v.number(),
+      createdAt: v.number(),
+    })
+      .index("by_user_date", ["userId", "date"])
+      .index("by_user", ["userId"]),
+
+    waterLogs: defineTable({
+      userId: v.id("users"),
+      date: v.string(),
+      amountMl: v.number(),
+      createdAt: v.number(),
+    })
+      .index("by_user_date", ["userId", "date"])
+      .index("by_user", ["userId"]),
+
+    activityLogs: defineTable({
+      userId: v.id("users"),
+      date: v.string(),
+      kind: v.string(), // steps | active_minutes | calories_burned | sleep_hours
+      value: v.number(),
+      source: v.string(), // manual — never fabricated
+      createdAt: v.number(),
+    })
+      .index("by_user_date", ["userId", "date"])
+      .index("by_user", ["userId"]),
+
+    dailyCheckins: defineTable({
+      userId: v.id("users"),
+      date: v.string(),
+      didWorkout: v.boolean(),
+      energyLevel: v.number(), // 1-5
+      sleepHours: v.optional(v.number()),
+      proteinOnTrack: v.optional(v.boolean()),
+      waterOnTrack: v.optional(v.boolean()),
+      steps: v.optional(v.number()),
+      stressLevel: v.string(), // low | moderate | high
+      painOrSymptoms: v.string(),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    })
+      .index("by_user_date", ["userId", "date"])
+      .index("by_user", ["userId"]),
+
+    weeklyReviews: defineTable({
+      userId: v.id("users"),
+      weekStart: v.string(), // yyyy-mm-dd of Monday
+      workoutAdherence: v.number(), // 0-1
+      nutritionAdherence: v.number(),
+      proteinConsistency: v.number(),
+      weightTrend: v.string(),
+      activityTrend: v.string(),
+      goalProgress: v.string(),
+      obstacles: v.array(v.string()),
+      nextWeekPriorities: v.array(v.string()),
+      summary: v.string(),
+      createdAt: v.number(),
+    })
+      .index("by_user_week", ["userId", "weekStart"])
+      .index("by_user", ["userId"]),
+
+    bodyMeasurements: defineTable({
+      userId: v.id("users"),
+      date: v.string(),
+      weightKg: v.optional(v.number()),
+      waistCm: v.optional(v.number()),
+      chestCm: v.optional(v.number()),
+      armCm: v.optional(v.number()),
+      legCm: v.optional(v.number()),
+      shoulderCm: v.optional(v.number()),
+      bodyFatPct: v.optional(v.number()),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]),
+
+    progressPhotos: defineTable({
+      userId: v.id("users"),
+      date: v.string(),
+      pose: v.string(), // front | side | back
+      storageId: v.optional(v.id("_storage")),
+      dataUrl: v.optional(v.string()), // small client-side downscale fallback
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]),
+
+    bodybuildingGoals: defineTable({
+      userId: v.id("users"),
+      mode: v.string(), // hypertrophy | strength | lean_bulk | cutting | recomp | comp_prep
+      isActive: v.boolean(),
+      targetWeightKg: v.optional(v.number()),
+      targetBodyFatPct: v.optional(v.number()),
+      startDate: v.string(),
+      targetDate: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_user_active", ["userId", "isActive"]),
+
+    competitionProfiles: defineTable({
+      userId: v.id("users"),
+      category: v.string(), // mens_physique | classic_physique | bodybuilding | womens_division
+      competitionDate: v.string(),
+      currentWeightKg: v.optional(v.number()),
+      trainingHistory: v.optional(v.string()),
+      previousCompetitions: v.optional(v.string()),
+      prepStartWeeks: v.number(),
+      phase: v.string(), // base | build | cut | peak | done
+      isActive: v.boolean(),
+      createdAt: v.number(),
+    }).index("by_user_active", ["userId", "isActive"]),
+
+    competitionCheckins: defineTable({
+      profileId: v.id("competitionProfiles"),
+      userId: v.id("users"),
+      weekLabel: v.string(),
+      weightKg: v.optional(v.number()),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_profile", ["profileId"]),
+
+    fitnessMilestones: defineTable({
+      userId: v.id("users"),
+      kind: v.string(), // workout_streak | nutrition_streak | water_streak | checkin_streak | pr
+      title: v.string(),
+      detail: v.string(),
+      achievedAt: v.number(),
+    }).index("by_user", ["userId"]),
   },
   {
     schemaValidation: false,

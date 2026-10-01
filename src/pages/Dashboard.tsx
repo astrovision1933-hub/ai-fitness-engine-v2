@@ -11,9 +11,11 @@ import { GOAL_LABELS } from "@/lib/labels";
 const QUICK_ACTIONS = [
   { label: "TODAY'S WORKOUT", to: "/workout" },
   { label: "CREATE WORKOUT", to: "/workout?generate=1" },
-  { label: "ANALYZE MY DIET", to: "/coach?q=Analyze%20my%20diet%20based%20on%20my%20profile." },
-  { label: "MY PROGRESS", to: "/profile" },
-  { label: "MY GOAL", to: "/profile#goal" },
+  { label: "LOG FOOD", to: "/nutrition" },
+  { label: "MEAL PLAN", to: "/nutrition" },
+  { label: "DAILY CHECK-IN", to: "/checkin" },
+  { label: "MY PROGRESS", to: "/progress" },
+  { label: "MY GOAL", to: "/goals" },
   { label: "ASK COACH", to: "/coach" },
 ] as const;
 
@@ -203,7 +205,7 @@ export default function Dashboard() {
 
         {/* quick actions */}
         <Panel title="QUICK ACTIONS">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
             {QUICK_ACTIONS.map((action) => (
               <Link
                 key={action.label}
@@ -264,9 +266,9 @@ export default function Dashboard() {
           </Panel>
         </div>
 
-        <SectionHeader index="→" title="ROADWAY" hint="modules arriving in parts 2-4" />
+        <SectionHeader index="→" title="ROADWAY" hint="modules arriving in parts 3-4" />
         <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          NUTRITION · PROGRESS · SUPPLEMENTS · PRODUCTS · REPORTS — schema slots ready
+          SUPPLEMENTS · PRODUCTS · REPORTS — schema slots ready · NUTRITION &amp; PROGRESS &amp; BODYBUILDING LIVE
         </p>
       </div>
     </AppShell>

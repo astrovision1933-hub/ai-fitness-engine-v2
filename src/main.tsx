@@ -16,6 +16,11 @@ const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Coach = lazy(() => import("./pages/Coach.tsx"));
 const Workout = lazy(() => import("./pages/Workout.tsx"));
+const Nutrition = lazy(() => import("./pages/Nutrition.tsx"));
+const Progress = lazy(() => import("./pages/Progress.tsx"));
+const CheckIn = lazy(() => import("./pages/CheckIn.tsx"));
+const Goals = lazy(() => import("./pages/Goals.tsx"));
+const Bodybuilding = lazy(() => import("./pages/Bodybuilding.tsx"));
 const Profile = lazy(() => import("./pages/Profile.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
@@ -157,6 +162,46 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Workout />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/nutrition"
+                element={
+                  <RequireAuth>
+                    <Nutrition />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/progress"
+                element={
+                  <RequireAuth>
+                    <Progress />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/checkin"
+                element={
+                  <RequireAuth>
+                    <CheckIn />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/goals"
+                element={
+                  <RequireAuth>
+                    <Goals />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/bodybuilding"
+                element={
+                  <RequireAuth>
+                    <Bodybuilding />
                   </RequireAuth>
                 }
               />

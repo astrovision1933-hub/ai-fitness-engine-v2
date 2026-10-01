@@ -62,6 +62,28 @@ export const getContextBundle = internalQuery({
       .order("desc")
       .take(8);
 
+    // Part 2 context: today's nutrition + latest check-in (if present).
+    const date = new Date().toISOString().slice(0, 10);
+    const [mealLogs, waterLogs, todayCheckin] = await Promise.all([
+      ctx.db
+        .query("mealLogs")
+        .withIndex("by_user_date", (q) => q.eq("userId", args.userId).eq("date", date))
+        .collect(),
+      ctx.db
+        .query("waterLogs")
+        .withIndex("by_user_date", (q) => q.eq("userId", args.userId).eq("date", date))
+        .collect(),
+      ctx.db
+        .query("dailyCheckins")
+        .withIndex("by_user_date", (q) => q.eq("userId", args.userId).eq("date", date))
+        .first(),
+    ]);
+    const consumed = mealLogs.reduce(
+      (acc, l) => ({ kcal: acc.kcal + l.calories, protein: acc.protein + l.proteinG }),
+      { kcal: 0, protein: 0 },
+    );
+    const waterMl = waterLogs.reduce((s, w) => s + w.amountMl, 0);
+
     const summaryLines: string[] = [];
     if (profile) {
       summaryLines.push(
@@ -94,6 +116,15 @@ export const getContextBundle = internalQuery({
       );
     if (memories.length)
       summaryLines.push(`LONG-TERM MEMORY: ${memories.map((m) => m.content).join("; ")}`);
+    if (consumed.kcal > 0 || waterMl > 0 || todayCheckin) {
+      summaryLines.push(
+        `TODAY (PART 2 DATA): consumed ${consumed.kcal} kcal / ${consumed.protein}g protein logged; water ${waterMl}ml${
+          todayCheckin
+            ? `; check-in: workout ${todayCheckin.didWorkout ? "done" : "skipped"}, energy ${todayCheckin.energyLevel}/5, stress ${todayCheckin.stressLevel}${todayCheckin.painOrSymptoms && todayCheckin.painOrSymptoms !== "none" ? `, reported: ${todayCheckin.painOrSymptoms}` : ""}`
+            : ""
+        }`,
+      );
+    }
     if (!summaryLines.length)
       summaryLines.push("No profile data yet — user may still be onboarding.");
 
