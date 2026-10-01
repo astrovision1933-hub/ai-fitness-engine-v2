@@ -106,6 +106,13 @@ type PlanRow = {
 type AuditRow = { _id: Id<"auditLogs">; userId?: Id<"users">; action: string; detail?: string; createdAt: number };
 type ConvoMeta = { _id: Id<"conversations">; persona: string; title?: string; lastMessageAt: number };
 type SettingRow = { key: string; value: string; locked: boolean };
+type SafetyOverview = {
+  flaggedTotal: number;
+  flagged7d: number;
+  byIntent: Array<{ intent: string; count: number }>;
+  blocksByCategory: Array<{ category: string; count: number }>;
+  recent: Array<{ _id: Id<"conversationMessages">; intent: string | null; createdAt: number }>;
+};
 
 const TABS = [
   "DASHBOARD",
@@ -117,6 +124,7 @@ const TABS = [
   "RULES",
   "PLANS",
   "SETTINGS",
+  "SAFETY",
   "AUDIT",
 ] as const;
 
@@ -141,6 +149,7 @@ export default function Admin() {
   const plans = useQuery(api.admin.listPlansAdmin, {});
   const settings = useQuery(api.admin.listSettings, {});
   const audit = useQuery(api.admin.listAuditLogs, {});
+  const safety = useQuery(api.admin.getSafetyOverview, {});
 
   const setUserDisabled = useMutation(api.admin.setUserDisabled);
   const setUserRole = useMutation(api.admin.setUserRole);
@@ -766,6 +775,50 @@ export default function Admin() {
               The safety layer cannot be disabled by anyone, including administrators. This is enforced server-side.
             </p>
           </Panel>
+        )}
+
+        {tab === "SAFETY" && (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatChip label="FLAGGED (7D)" value={safety?.flagged7d ?? "…"} tone="warn" />
+              <StatChip label="FLAGGED TOTAL" value={safety?.flaggedTotal ?? "…"} tone="warn" />
+              <StatChip label="SAFETY ACTIVE" value="ALWAYS ON" tone="ok" />
+              <StatChip label="AI BYPASS" value="BLOCKED" tone="ok" />
+            </div>
+            <Panel title="SAFETY BLOCKS BY CATEGORY" subtitle="rule hits from audit logs — content is never shown">
+              {safety?.blocksByCategory.length ? (
+                <div className="space-y-1.5">
+                  {safety.blocksByCategory.map((c) => (
+                    <div key={c.category} className="flex items-center gap-2 text-xs">
+                      <span className="w-44 shrink-0 truncate uppercase tracking-wider">{c.category.replace(/_/g, " ")}</span>
+                      <AsciiBar value={c.count / Math.max(safety.blocksByCategory[0]?.count ?? 1, 1)} width={14} />
+                      <span className="ml-auto font-semibold">{c.count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No safety blocks recorded yet.</p>
+              )}
+            </Panel>
+            <Panel title="RECENT FLAGGED MESSAGES" subtitle="metadata only — intents and timestamps, never content">
+              {safety?.recent.length ? (
+                <div className="space-y-1">
+                  {safety.recent.map((m) => (
+                    <div key={m._id} className="flex items-center justify-between border-b border-border/60 py-1.5 text-xs last:border-0">
+                      <TerminalBadge tone="warn">{(m.intent ?? "unknown").replace(/_/g, " ")}</TerminalBadge>
+                      <span className="text-[10px] text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No flagged messages — the safety layer short-circuits dangerous requests before any AI call.</p>
+              )}
+            </Panel>
+            <p className="text-[10px] text-muted-foreground">
+              The safety layer (extreme dieting, dehydration, PEDs, medical symptoms, injury, dangerous supplements) runs
+              first in the orchestration pipeline and cannot be disabled — not by admins, not by configuration.
+            </p>
+          </>
         )}
 
         {tab === "AUDIT" && (

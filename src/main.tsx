@@ -97,6 +97,12 @@ class RootErrorBoundary extends React.Component<
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
+// PWA — service worker registration. Production only: the dev preview must
+// never serve stale cached bundles.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+}
+
 
 
 function RouteSyncer() {

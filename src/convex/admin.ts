@@ -552,6 +552,50 @@ export const listAuditLogs = query({
   },
 });
 
+/** Safety overview — aggregate + recent flagged-message METADATA only.
+ *  Message content is never exposed. Safety rules themselves are always on
+ *  and cannot be disabled from the admin panel. */
+export const getSafetyOverview = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdminMutation(ctx);
+    const weekAgo = Date.now() - 7 * 86400000;
+    const msgs = await ctx.db.query("conversationMessages").take(4000);
+    const flagged = msgs.filter((m) => m.safetyFlag === true);
+    const byIntent = new Map<string, number>();
+    for (const m of flagged) {
+      const k = m.intent ?? "unknown";
+      byIntent.set(k, (byIntent.get(k) ?? 0) + 1);
+    }
+    const safetyBlocks = await ctx.db
+      .query("auditLogs")
+      .take(2000);
+    const blocksByCategory = new Map<string, number>();
+    for (const l of safetyBlocks) {
+      if (l.action !== "safety_block" || !l.detail) continue;
+      const cat = l.detail.replace("category=", "") || "unknown";
+      blocksByCategory.set(cat, (blocksByCategory.get(cat) ?? 0) + 1);
+    }
+    return {
+      flaggedTotal: flagged.length,
+      flagged7d: flagged.filter((m) => m.createdAt >= weekAgo).length,
+      byIntent: [...byIntent.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+        .map(([intent, count]) => ({ intent, count })),
+      blocksByCategory: [...blocksByCategory.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([category, count]) => ({ category, count })),
+      recent: flagged.slice(-10).map((m) => ({
+        _id: m._id,
+        intent: m.intent ?? null,
+        createdAt: m.createdAt,
+      })),
+    };
+  },
+});
+
 /** Conversation METADATA only — message content is never exposed to admin UI. */
 export const listConversationsMeta = query({
   args: { limit: v.optional(v.number()) },
