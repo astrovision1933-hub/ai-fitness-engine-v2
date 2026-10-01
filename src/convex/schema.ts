@@ -29,6 +29,7 @@ const schema = defineSchema(
       emailVerificationTime: v.optional(v.number()),
       isAnonymous: v.optional(v.boolean()),
       role: v.optional(roleValidator),
+      disabled: v.optional(v.boolean()), // Part 4: admin account control
     }).index("email", ["email"]),
 
     // ---- Part 1: AI Fitness Engine domain tables ----
@@ -443,6 +444,310 @@ const schema = defineSchema(
       detail: v.string(),
       achievedAt: v.number(),
     }).index("by_user", ["userId"]),
+
+    // ===================================================================
+    // PART 3 — SUPPLEMENT INTELLIGENCE + PRODUCT INTELLIGENCE
+    // ===================================================================
+
+    // Education knowledge base (public, seeded; admin-extendable via knowledgeDocuments)
+    supplements: defineTable({
+      slug: v.string(),
+      category: v.string(), // whey_protein | mass_gainer | creatine | pre_workout | bcaa | eaa | electrolytes | vitamins | minerals | protein_blend | other
+      name: v.string(),
+      whatIs: v.string(),
+      whoMayUse: v.string(),
+      evidence: v.string(), // what research suggests, stated conservatively
+      commonUse: v.string(),
+      limitations: v.string(),
+      cautionWho: v.string(), // who should be cautious / seek professional advice
+      evidenceLevel: v.string(), // strong | moderate | limited | unclear
+    }).index("by_slug", ["slug"]).index("by_category", ["category"]),
+
+    // Ingredients extracted from one label analysis
+    supplementIngredients: defineTable({
+      analysisId: v.id("supplementAnalysis"),
+      name: v.string(),
+      amount: v.optional(v.string()),
+      role: v.optional(v.string()), // protein_source | sweetener | filler | stimulant | vitamin | mineral | other
+      note: v.optional(v.string()),
+    }).index("by_analysis", ["analysisId"]),
+
+    // One label-scan / typed-label analysis result per user
+    supplementAnalysis: defineTable({
+      userId: v.id("users"),
+      inputType: v.string(), // typed | scanned_text (image OCR not available — text only)
+      rawLabel: v.string(),
+      productName: v.optional(v.string()),
+      brand: v.optional(v.string()),
+      category: v.optional(v.string()),
+      servingSize: v.optional(v.string()),
+      nutritionFacts: v.optional(v.object({
+        calories: v.optional(v.number()),
+        proteinG: v.optional(v.number()),
+        carbsG: v.optional(v.number()),
+        fatG: v.optional(v.number()),
+      })),
+      manufacturer: v.optional(v.string()),
+      importer: v.optional(v.string()),
+      batchNumber: v.optional(v.string()),
+      expiry: v.optional(v.string()),
+      mrp: v.optional(v.number()),
+      barcode: v.optional(v.string()),
+      verificationInfo: v.optional(v.string()),
+      priceIntel: v.optional(v.object({
+        pricePerServing: v.optional(v.number()),
+        pricePerGram: v.optional(v.number()),
+        pricePerProteinGram: v.optional(v.number()),
+        note: v.optional(v.string()),
+      })),
+      verdict: v.string(), // one of the 5 evidence verdicts — never "definitely genuine/fake"
+      evidenceChecked: v.array(v.string()),
+      evidenceMissing: v.array(v.string()),
+      redFlags: v.array(v.string()),
+      verificationSteps: v.array(v.string()),
+      fitnessRelevance: v.optional(v.string()), // AI enrichment, context-aware
+      createdAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_created", ["userId", "createdAt"]),
+
+    // Verification attempts (QR / auth code / batch / official channel)
+    supplementVerifications: defineTable({
+      userId: v.id("users"),
+      analysisId: v.optional(v.id("supplementAnalysis")),
+      method: v.string(), // qr | auth_code | batch | official_website | manual
+      identifier: v.string(),
+      result: v.string(), // submitted | instructions_provided | authoritative_confirmation | could_not_verify
+      sourceName: v.optional(v.string()),
+      sourceUrl: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]).index("by_analysis", ["analysisId"]),
+
+    // Brands / manufacturers researched or admin-entered
+    brands: defineTable({
+      slug: v.string(),
+      name: v.string(),
+      website: v.optional(v.string()),
+      manufacturerName: v.optional(v.string()),
+      distributor: v.optional(v.string()),
+      certificationsClaimed: v.array(v.string()), // always labeled BRAND CLAIM until verified
+      verificationMethods: v.array(v.string()),
+      notes: v.optional(v.string()),
+      isPublic: v.boolean(),
+    }).index("by_slug", ["slug"]),
+
+    manufacturers: defineTable({
+      name: v.string(),
+      country: v.optional(v.string()),
+      website: v.optional(v.string()),
+      notes: v.optional(v.string()),
+    }).index("by_name", ["name"]),
+
+    // Admin-controlled catalog — only approvedForRecommendation rows are recommendable
+    productCatalog: defineTable({
+      name: v.string(),
+      brand: v.string(),
+      category: v.string(),
+      imageUrl: v.optional(v.string()),
+      price: v.number(),
+      mrp: v.optional(v.number()),
+      sizeGrams: v.optional(v.number()),
+      servings: v.optional(v.number()),
+      servingSize: v.optional(v.string()),
+      flavour: v.optional(v.string()),
+      ingredients: v.optional(v.string()),
+      nutrition: v.optional(v.object({
+        calories: v.optional(v.number()),
+        proteinG: v.optional(v.number()),
+        carbsG: v.optional(v.number()),
+        fatG: v.optional(v.number()),
+      })),
+      manufacturer: v.optional(v.string()),
+      distributor: v.optional(v.string()),
+      verificationMethod: v.optional(v.string()),
+      verificationUrl: v.optional(v.string()),
+      batchInstructions: v.optional(v.string()),
+      targetAudience: v.optional(v.string()),
+      fitnessGoals: v.array(v.string()),
+      benefits: v.optional(v.string()),
+      warnings: v.optional(v.string()),
+      usage: v.optional(v.string()),
+      stockStatus: v.string(), // in_stock | out_of_stock | discontinued
+      approvedForRecommendation: v.boolean(),
+      isActive: v.boolean(),
+    }).index("by_category", ["category"]).index("by_brand", ["brand"]),
+
+    // Source engine rows — evidence attached to analyses or products
+    productSources: defineTable({
+      analysisId: v.optional(v.id("supplementAnalysis")),
+      productId: v.optional(v.id("productCatalog")),
+      sourceName: v.string(),
+      url: v.optional(v.string()),
+      date: v.optional(v.string()),
+      claim: v.string(),
+      evidenceType: v.string(), // verified_fact | brand_claim | third_party_claim | unverified
+      createdAt: v.number(),
+    }).index("by_analysis", ["analysisId"]).index("by_product", ["productId"]),
+
+    productRecommendations: defineTable({
+      userId: v.id("users"),
+      productId: v.id("productCatalog"),
+      reason: v.string(),
+      userContext: v.optional(v.string()),
+      disclosure: v.string(), // always shown to the user
+      alternatives: v.optional(v.string()),
+      status: v.string(), // shown | accepted | dismissed
+      createdAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_created", ["userId", "createdAt"]),
+
+    productComparisons: defineTable({
+      userId: v.id("users"),
+      productAId: v.id("productCatalog"),
+      productBId: v.id("productCatalog"),
+      metrics: v.optional(v.string()), // JSON comparison rows
+      summary: v.string(),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]),
+
+    // Admin recommendation rules: goal/diet/budget/experience/weight/category gates
+    adminProductRules: defineTable({
+      name: v.string(),
+      enabled: v.boolean(),
+      goal: v.optional(v.string()),
+      dietType: v.optional(v.string()),
+      budgetLevel: v.optional(v.string()), // low | medium | high
+      experience: v.optional(v.string()),
+      weightMinKg: v.optional(v.number()),
+      weightMaxKg: v.optional(v.number()),
+      category: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_enabled", ["enabled"]),
+
+    // Admin knowledge base retrieved by the coach
+    knowledgeDocuments: defineTable({
+      title: v.string(),
+      category: v.string(), // fitness | nutrition | faq | product | brand | coaching_method | policy | verification
+      content: v.string(),
+      tags: v.array(v.string()),
+      source: v.optional(v.string()),
+      isActive: v.boolean(),
+      createdAt: v.number(),
+    }).index("by_active", ["isActive"]).index("by_category", ["category"]),
+
+    // ===================================================================
+    // PART 4 — ADMIN + MONETIZATION + ADVANCED AI
+    // ===================================================================
+
+    subscriptionPlans: defineTable({
+      slug: v.string(), // free | premium | pro_coach | competition
+      name: v.string(),
+      priceInr: v.number(), // monthly
+      features: v.array(v.string()),
+      aiMessageLimit: v.number(), // per day
+      reportsPerMonth: v.number(),
+      coachingAccess: v.boolean(),
+      nutritionAccess: v.boolean(),
+      competitionAccess: v.boolean(),
+      supplementAccess: v.boolean(),
+      voiceAccess: v.boolean(),
+      advancedAnalytics: v.boolean(),
+      isActive: v.boolean(),
+      sortOrder: v.number(),
+    }).index("by_slug", ["slug"]),
+
+    subscriptions: defineTable({
+      userId: v.id("users"),
+      planSlug: v.string(),
+      status: v.string(), // active | trialing | canceled | expired
+      trialStartedAt: v.optional(v.number()),
+      trialEndsAt: v.optional(v.number()),
+      currentPeriodEnd: v.optional(v.number()),
+      source: v.string(), // admin | play_billing | web | trial
+      cancelAtPeriodEnd: v.boolean(),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    }).index("by_user", ["userId"]).index("by_plan", ["planSlug"]),
+
+    // Google Play Billing records — entitlement NEVER granted from client claims
+    purchaseRecords: defineTable({
+      userId: v.id("users"),
+      platform: v.string(), // android | web
+      productId: v.string(),
+      purchaseToken: v.string(),
+      orderId: v.optional(v.string()),
+      packageName: v.optional(v.string()),
+      verificationStatus: v.string(), // pending | verified | failed | unverified
+      verificationNote: v.optional(v.string()),
+      verifiedAt: v.optional(v.number()),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]).index("by_token", ["purchaseToken"]),
+
+    aiUsage: defineTable({
+      userId: v.id("users"),
+      day: v.string(), // yyyy-mm-dd
+      messages: v.number(),
+      actions: v.optional(v.number()),
+      updatedAt: v.number(),
+    }).index("by_user_day", ["userId", "day"]),
+
+    leadStates: defineTable({
+      userId: v.id("users"),
+      temperature: v.string(), // cold | warm | interested | high_intent
+      signals: v.array(v.string()),
+      lastSignalAt: v.number(),
+      updatedAt: v.number(),
+    }).index("by_user", ["userId"]).index("by_temperature", ["temperature"]),
+
+    userSettings: defineTable({
+      userId: v.id("users"),
+      notifications: v.object({
+        workoutReminders: v.boolean(),
+        waterReminders: v.boolean(),
+        checkinReminders: v.boolean(),
+        weeklyReview: v.boolean(),
+        milestones: v.boolean(),
+        subscription: v.boolean(),
+        planRenewal: v.boolean(),
+      }),
+      voice: v.object({
+        inputEnabled: v.boolean(),
+        outputEnabled: v.boolean(),
+      }),
+      privacy: v.object({
+        consentAnalytics: v.boolean(),
+        allowCoachMemory: v.boolean(),
+      }),
+      updatedAt: v.number(),
+    }).index("by_user", ["userId"]),
+
+    generatedReports: defineTable({
+      userId: v.id("users"),
+      kind: v.string(), // weekly | monthly | progress | workout | nutrition | competition
+      periodStart: v.string(),
+      periodEnd: v.string(),
+      content: v.string(),
+      dataSnapshot: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_user", ["userId"]).index("by_user_created", ["userId", "createdAt"]),
+
+    analyticsEvents: defineTable({
+      userId: v.optional(v.id("users")),
+      name: v.string(),
+      props: v.optional(v.string()), // JSON, aggregate-only
+      createdAt: v.number(),
+    }).index("by_name", ["name"]).index("by_created", ["createdAt"]),
+
+    // Admin app settings + feature flags. Safety-critical keys are protected
+    // in admin.ts and can never be disabled.
+    appSettings: defineTable({
+      key: v.string(),
+      value: v.string(),
+      updatedAt: v.number(),
+    }).index("by_key", ["key"]),
   },
   {
     schemaValidation: false,

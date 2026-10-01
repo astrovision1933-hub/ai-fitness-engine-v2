@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { classifyIntent } from "./services/intent";
 import { assessSafety } from "./services/safety";
@@ -10,6 +10,15 @@ import { assessSafety } from "./services/safety";
 // USER MESSAGE → INTENT → CONTEXT → SAFETY → SPECIALIZED SERVICE → AI → MEMORY
 // Runs as an internalAction so HTTP/public wrappers can stay thin.
 
+/** Minimal account state for the orchestrator gate. */
+export const getAccountState = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    return { disabled: user?.disabled ?? false };
+  },
+});
+
 export const orchestrateCoachReply = internalAction({
   args: {
     userId: v.id("users"),
@@ -17,6 +26,21 @@ export const orchestrateCoachReply = internalAction({
     message: v.string(),
   },
   handler: async (ctx, args) => {
+    // 0. ACCOUNT STATE — disabled accounts receive no AI processing.
+    const account = await ctx.runQuery(internal.coach.getAccountState, { userId: args.userId });
+    if (account.disabled) {
+      await ctx.runMutation(internal.coachChat.persistExchange, {
+        userId: args.userId,
+        conversationId: args.conversationId,
+        userMessage: args.message,
+        assistantReply: "This account is currently disabled. Contact support if you believe this is an error.",
+        intent: "account_disabled",
+        intentConfidence: 1,
+        safetyFlag: false,
+      });
+      return { intent: "account_disabled" as const, safetyFlag: false };
+    }
+
     // 1. INTENT
     const { intent, confidence } = classifyIntent(args.message);
 
@@ -40,9 +64,33 @@ export const orchestrateCoachReply = internalAction({
       return { intent: "safety_sensitive" as const, safetyFlag: true };
     }
 
+    // 2b. USAGE + ACCOUNT STATE — plan limits and disabled accounts gate AI spend.
+    try {
+      await ctx.runMutation(internal.subscriptions.useAiMessage, { userId: args.userId });
+    } catch {
+      const reply =
+        "You've reached today's AI message limit for your current plan. You can upgrade in the SUBSCRIPTION module for a higher limit — your coaching history and plans are untouched.";
+      await ctx.runMutation(internal.coachChat.persistExchange, {
+        userId: args.userId,
+        conversationId: args.conversationId,
+        userMessage: args.message,
+        assistantReply: reply,
+        intent: "usage_limit",
+        intentConfidence: 1,
+        safetyFlag: false,
+      });
+      return { intent: "usage_limit" as const, safetyFlag: false };
+    }
+
     // 3. CONTEXT
     const contextBundle = await ctx.runQuery(internal.coachChat.getContextBundle, {
       userId: args.userId,
+    });
+
+    // 3b. ADMIN KNOWLEDGE BASE — retrieved per message; empty when nothing matches.
+    const knowledge = await ctx.runQuery(internal.services.knowledge.retrieveKnowledge, {
+      query: args.message,
+      limit: 3,
     });
 
     const persona = contextBundle.persona;
@@ -54,9 +102,14 @@ export const orchestrateCoachReply = internalAction({
       contextBundle.summary,
       "",
       `DETECTED INTENT: ${intent} (confidence ${confidence})`,
+      knowledge.length
+        ? "=== ADMIN KNOWLEDGE BASE (ADMIN PROVIDED — prefer this over generic knowledge and name the document you used) ===\n" +
+          knowledge.map((k) => `[${k.title}] (${k.category}) ${k.content}`).join("\n---\n")
+        : "",
       "=== ANTI-HALLUCINATION RULES ===",
-      "Distinguish: USER-PROVIDED vs SYSTEM DATA vs ESTIMATED vs UNCERTAIN.",
+      "Distinguish: USER-PROVIDED vs SYSTEM DATA vs ESTIMATED vs UNCERTAIN. When stating a fact, label it CONFIRMED / ESTIMATED / USER PROVIDED / ADMIN PROVIDED / EXTERNAL SOURCE / UNCERTAIN.",
       "Never invent medical diagnoses, fitness statistics, studies, product verifications or certifications.",
+      "Never claim a product is definitely genuine or definitely fake — authenticity claims need authoritative verification.",
       "If important information is missing, ask one targeted question instead of guessing.",
       "Keep replies under 180 words unless the user asks for a full plan.",
     ].join("\n");
@@ -93,6 +146,21 @@ export const orchestrateCoachReply = internalAction({
         key: "goal_update",
         content: args.message.slice(0, 280),
         source: "user_provided",
+      });
+    }
+
+    // 6b. LEAD INTELLIGENCE — record genuine interest signals only.
+    if (intent === "coaching_request") {
+      await ctx.runMutation(internal.services.lead.recordLeadSignal, {
+        userId: args.userId,
+        signal: "coaching_request",
+        minRank: 2,
+      });
+    } else if (intent === "product_question" || intent === "supplement_question") {
+      await ctx.runMutation(internal.services.lead.recordLeadSignal, {
+        userId: args.userId,
+        signal: intent,
+        minRank: 1,
       });
     }
 
