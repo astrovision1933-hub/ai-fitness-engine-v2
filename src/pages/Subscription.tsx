@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
@@ -75,7 +75,7 @@ export default function Subscription() {
   const ensureSub = useMutation(api.subscriptions.ensureSubscription);
   const startTrial = useMutation(api.subscriptions.startTrial);
   const cancel = useMutation(api.subscriptions.cancelSubscription);
-  const recordPurchase = useMutation(api.subscriptions.validatePlayPurchase);
+  const recordPurchase = useAction(api.subscriptions.validatePlayPurchase);
 
   useEffect(() => {
     seedPlans({}).catch(() => undefined);

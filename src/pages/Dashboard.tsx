@@ -17,6 +17,9 @@ const QUICK_ACTIONS = [
   { label: "MY PROGRESS", to: "/progress" },
   { label: "MY GOAL", to: "/goals" },
   { label: "ASK COACH", to: "/coach" },
+  { label: "SUPPLEMENTS", to: "/supplements" },
+  { label: "PRODUCTS", to: "/products" },
+  { label: "REPORTS", to: "/reports" },
 ] as const;
 
 function greetingFor(hour: number) {
@@ -266,9 +269,9 @@ export default function Dashboard() {
           </Panel>
         </div>
 
-        <SectionHeader index="→" title="ROADWAY" hint="modules arriving in parts 3-4" />
+        <SectionHeader index="→" title="MODULE MAP" hint="all 12 modules live" />
         <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          SUPPLEMENTS · PRODUCTS · REPORTS — schema slots ready · NUTRITION &amp; PROGRESS &amp; BODYBUILDING LIVE
+          CORE · COACH · WORKOUT · NUTRITION · PROGRESS · CHECK-IN · GOALS · BODYBUILDING · SUPPLEMENTS · PRODUCTS · REPORTS · SETTINGS &amp; PLAN
         </p>
       </div>
     </AppShell>

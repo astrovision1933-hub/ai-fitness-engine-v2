@@ -10,6 +10,7 @@ import { INTENT_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { useVoiceCoach } from "@/hooks/use-voice-coach";
 
 const QUICK_ACTIONS = [
   "Today's Workout",
@@ -37,6 +38,8 @@ export default function Coach() {
   const profile = useQuery(api.profile.getProfile);
   const latest = useQuery(api.coachChat.getLatestConversation);
   const conversations = useQuery(api.coachChat.listConversations);
+  const ent = useQuery(api.subscriptions.getMyEntitlement, {});
+  const settings = useQuery(api.settings.getMySettings, {});
 
   const [conversationId, setConversationId] = useState<Id<"conversations"> | null>(null);
   const messages = useQuery(
@@ -53,6 +56,33 @@ export default function Coach() {
   const [sending, setSending] = useState(false);
   const [pendingReply, setPendingReply] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Voice (Part 4) — Web Speech provider, gated on entitlement + user settings.
+  // Never claims to be human: composer labels it SYNTHETIC VOICE.
+  const voiceInputEnabled =
+    ent !== undefined && ent !== null && ent.voiceAccess === true &&
+    settings !== undefined && settings !== null && settings.voice.inputEnabled === true;
+  const voiceOutEnabled =
+    ent !== undefined && ent !== null && ent.voiceAccess === true &&
+    settings !== undefined && settings !== null && settings.voice.outputEnabled === true;
+  const voice = useVoiceCoach({ enabled: voiceInputEnabled || voiceOutEnabled });
+  const { startListening, stopListening, speak, transcript, listening, speaking, error: voiceError, sttSupported } = voice;
+  const wasPendingRef = useRef(false);
+
+  // Mic transcript flows into the composer.
+  useEffect(() => {
+    if (transcript) setInput(transcript);
+  }, [transcript]);
+
+  // Speak each new assistant reply once, when voice output is allowed.
+  useEffect(() => {
+    const was = wasPendingRef.current;
+    wasPendingRef.current = pendingReply;
+    if (was && !pendingReply && voiceOutEnabled && messages?.length) {
+      const last = messages[messages.length - 1];
+      if (last.role !== "user") speak(last.content);
+    }
+  }, [pendingReply, messages, voiceOutEnabled, speak]);
 
   // Boot the roster on first load.
   useEffect(() => {
@@ -288,6 +318,20 @@ export default function Coach() {
               handleSend();
             }}
           >
+            {voiceInputEnabled && sttSupported && (
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "rounded-none text-[11px] uppercase tracking-[0.14em]",
+                  listening && "border-terminal-amber/60 bg-[#fdf3e7] text-status-warn",
+                )}
+                disabled={!conversationId || sending}
+                onClick={() => (listening ? stopListening() : startListening())}
+              >
+                {listening ? "● REC" : "🎙 MIC"}
+              </Button>
+            )}
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -303,6 +347,14 @@ export default function Coach() {
               SEND →
             </Button>
           </form>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            {(voiceInputEnabled || voiceOutEnabled) && (
+              <TerminalBadge tone="info">SYNTHETIC VOICE — AI COACH</TerminalBadge>
+            )}
+            {listening && <span className="text-status-warn">LISTENING…</span>}
+            {speaking && <span className="text-status-ok">SPEAKING…</span>}
+            {voiceError && <span className="text-status-warn">{voiceError}</span>}
+          </div>
         </Panel>
       </div>
     </AppShell>

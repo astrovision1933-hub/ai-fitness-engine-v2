@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { SignOutButton } from "@/components/SignOutButton";
 import { cn } from "@/lib/utils";
-import { NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 
 const PRIMARY_NAV = [
@@ -17,9 +17,25 @@ const SECONDARY_NAV = [
   { to: "/goals", label: "GOALS" },
   { to: "/checkin", label: "CHECK-IN" },
   { to: "/bodybuilding", label: "BODYBUILDING" },
+  { to: "/supplements", label: "SUPPLEMENTS" },
+  { to: "/products", label: "PRODUCTS" },
+  { to: "/reports", label: "REPORTS" },
 ];
 
-const FUTURE_SLOTS = ["SUPPLEMENTS", "PRODUCTS", "REPORTS"];
+const ACCOUNT_NAV = [
+  { to: "/settings", label: "SETTINGS" },
+  { to: "/subscription", label: "PLAN" },
+];
+
+const ADMIN_NAV = { to: "/admin", label: "ADMIN" };
+
+const FOOTER_MODULES = [
+  { to: "/supplements", label: "SUPPLEMENTS" },
+  { to: "/products", label: "PRODUCTS" },
+  { to: "/reports", label: "REPORTS" },
+  { to: "/settings", label: "SETTINGS" },
+  { to: "/subscription", label: "PLAN" },
+];
 
 function useClock() {
   const [now, setNow] = useState(() => new Date());
@@ -34,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const now = useClock();
+  const isAdmin = user?.role === "admin";
 
   return (
     <div className="min-h-screen bg-background">
@@ -86,6 +103,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {item.label}
               </NavLink>
             ))}
+            <span className="mx-1 h-4 w-px bg-border" />
+            {ACCOUNT_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "px-2 py-1.5 text-[11px] uppercase tracking-[0.16em] transition-colors",
+                    isActive
+                      ? "border border-border bg-muted text-foreground"
+                      : "border border-transparent text-muted-foreground/70 hover:text-foreground",
+                  )
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            {isAdmin && (
+              <NavLink
+                to={ADMIN_NAV.to}
+                className={({ isActive }) =>
+                  cn(
+                    "px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors",
+                    isActive
+                      ? "border border-status-warn/60 bg-[#fdf3e7] text-status-warn"
+                      : "border border-transparent text-status-warn/80 hover:text-status-warn",
+                  )
+                }
+              >
+                {ADMIN_NAV.label}
+              </NavLink>
+            )}
           </nav>
 
           <div className="flex items-center gap-3">
@@ -98,7 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* mobile nav */}
         <nav className="flex justify-between gap-1 overflow-x-auto border-t border-border px-2 py-1.5 md:hidden">
-          {[...PRIMARY_NAV, ...SECONDARY_NAV].map((item) => (
+          {[...PRIMARY_NAV, ...SECONDARY_NAV, ...ACCOUNT_NAV, ...(isAdmin ? [ADMIN_NAV] : [])].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -119,12 +168,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          <span>AI FITNESS ENGINE — CORE v0.1 · PART 1/4</span>
+          <span>AI FITNESS ENGINE — CORE v0.1 · PART 4/4 · ALL MODULES LIVE</span>
           <span className="flex flex-wrap items-center gap-3">
-            {FUTURE_SLOTS.map((slot) => (
-              <span key={slot} className="text-muted-foreground/50 line-through decoration-border">
-                {slot}
-              </span>
+            {FOOTER_MODULES.map((m) => (
+              <Link key={m.to} to={m.to} className="transition-colors hover:text-foreground">
+                {m.label}
+              </Link>
             ))}
           </span>
           <span>SIGNED IN AS {user?.email ?? "GUEST"}</span>

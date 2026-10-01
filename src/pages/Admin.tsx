@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
-import { GOAL_LABELS, CATEGORY_LABELS, KNOWLEDGE_CATEGORIES, LEAD_LABELS } from "@/lib/labels";
+import { GOAL_LABELS, CATEGORY_LABELS, KNOWLEDGE_CATEGORIES } from "@/lib/labels";
 
 type Metrics = {
   totalUsers: number;
@@ -63,7 +63,7 @@ type KnowledgeDoc = {
   content: string;
   source?: string;
   isActive: boolean;
-  updatedAt: number;
+  createdAt: number;
 };
 
 type CatalogRow = {
@@ -377,23 +377,24 @@ export default function Admin() {
                 <div className="grid gap-3 text-xs sm:grid-cols-3">
                   <div>
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">PROFILE</p>
-                    <p>Name: {userDetail.profile?.name ?? "—"}</p>
-                    <p>Experience: {userDetail.profile?.experience ?? "—"}</p>
+                    <p>Name: {userDetail.user.name ?? "—"}</p>
+                    <p>Age/Sex: {userDetail.profile?.age ?? "—"} / {userDetail.profile?.sex ?? "—"}</p>
                     <p>Weight: {userDetail.profile?.weightKg ?? "—"}kg</p>
+                    <p>Experience: {userDetail.profile?.experience ?? "—"}</p>
+                    <p>Diet: {userDetail.profile?.dietType ?? "—"}</p>
                     <p>Onboarded: {userDetail.profile?.onboardingComplete ? "yes" : "no"}</p>
                   </div>
                   <div>
                     <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">GOAL & PLAN</p>
-                    <p>Goal: {userDetail.goal ? (GOAL_LABELS[userDetail.goal.goal] ?? userDetail.goal.goal) : "—"}</p>
+                    <p>Goal: {userDetail.activeGoal ? (GOAL_LABELS[userDetail.activeGoal.goal] ?? userDetail.activeGoal.goal) : "—"}</p>
                     <p>Plan: {userDetail.subscription?.planSlug ?? "free"} ({userDetail.subscription?.status ?? "none"})</p>
-                    <p>Coach assigned: {userDetail.assignment ? "yes" : "no"}</p>
+                    <p>Active plans: {userDetail.planCount}</p>
                   </div>
                   <div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">ACTIVITY (COUNTS)</p>
-                    <p>Analyses: {userDetail.activityCounts?.analyses ?? 0}</p>
-                    <p>Recommendations: {userDetail.activityCounts?.recommendations ?? 0}</p>
-                    <p>Reports: {userDetail.activityCounts?.reports ?? 0}</p>
-                    <p>Lead: {userDetail.leadTemperature ? (LEAD_LABELS[userDetail.leadTemperature] ?? userDetail.leadTemperature) : "—"}</p>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">ACCOUNT</p>
+                    <p>Role: {userDetail.user.role}</p>
+                    <p>Disabled: {userDetail.user.disabled ? "yes" : "no"}</p>
+                    <p>Anonymous: {userDetail.user.isAnonymous ? "yes" : "no"}</p>
                   </div>
                 </div>
                 <div className="mt-3 flex gap-1.5">
@@ -528,7 +529,7 @@ export default function Admin() {
                           size="sm"
                           variant="outline"
                           className="rounded-none text-[10px]"
-                          onClick={() => act(() => saveKnowledgeM({ id: k._id, title: k.title, category: k.category, content: k.content, source: k.source, isActive: !k.isActive }), "Document updated")}
+                          onClick={() => act(() => saveKnowledgeM({ id: k._id, title: k.title, category: k.category, content: k.content, source: k.source, tags: [], isActive: !k.isActive }), "Document updated")}
                         >
                           {k.isActive ? "DISABLE" : "ENABLE"}
                         </Button>
@@ -564,7 +565,7 @@ export default function Admin() {
                 className="mt-2 rounded-none text-[10px] uppercase tracking-[0.12em]"
                 onClick={() =>
                   act(async () => {
-                    await saveKnowledgeM({ title: kForm.title, category: kForm.category, content: kForm.content, source: kForm.source || undefined, isActive: true });
+                    await saveKnowledgeM({ title: kForm.title, category: kForm.category, content: kForm.content, source: kForm.source || undefined, tags: [], isActive: true });
                     setKForm({ title: "", category: "fitness", content: "", source: "" });
                   }, "Document saved")
                 }

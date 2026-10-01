@@ -22,6 +22,12 @@ const CheckIn = lazy(() => import("./pages/CheckIn.tsx"));
 const Goals = lazy(() => import("./pages/Goals.tsx"));
 const Bodybuilding = lazy(() => import("./pages/Bodybuilding.tsx"));
 const Profile = lazy(() => import("./pages/Profile.tsx"));
+const Supplements = lazy(() => import("./pages/Supplements.tsx"));
+const Products = lazy(() => import("./pages/Products.tsx"));
+const Reports = lazy(() => import("./pages/Reports.tsx"));
+const Settings = lazy(() => import("./pages/Settings.tsx"));
+const Subscription = lazy(() => import("./pages/Subscription.tsx"));
+const Admin = lazy(() => import("./pages/Admin.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -210,6 +216,54 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Profile />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/supplements"
+                element={
+                  <RequireAuth>
+                    <Supplements />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/products"
+                element={
+                  <RequireAuth>
+                    <Products />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <RequireAuth>
+                    <Reports />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <RequireAuth>
+                    <Settings />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/subscription"
+                element={
+                  <RequireAuth>
+                    <Subscription />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth>
+                    <Admin />
                   </RequireAuth>
                 }
               />
