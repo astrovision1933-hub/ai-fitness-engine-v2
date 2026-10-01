@@ -126,7 +126,7 @@ export const compareProducts = action({
 
     if (args.useAi !== false) {
       try {
-        const bundle = await ctx.runQuery(internal.coachChat.getContextBundle, { userId });
+        const bundle = await ctx.runQuery(internal.coachContext.getContextBundle, { userId });
         const ai = await ctx.runAction(api.services.aiProvider.aiComplete, {
           system: [
             "You are the product-comparison module of an AI fitness coach.",
@@ -203,7 +203,7 @@ function ruleMatches(rule: Rule, u: {
 
 export const generateRecommendations = action({
   args: { max: v.optional(v.number()) },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ items: Array<{ recommendationId: Id<"productRecommendations">; product: Doc<"productCatalog"> | null; reason: string; alternatives: string[] }>; note: string }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -273,7 +273,7 @@ export const generateRecommendations = action({
 
     // 4. AI explains the fit using real user context. Falls back to a
     //    deterministic reason if AI is unavailable.
-    const bundle = await ctx.runQuery(internal.coachChat.getContextBundle, { userId });
+    const bundle = await ctx.runQuery(internal.coachContext.getContextBundle, { userId });
     let reason = `Matches your goal (${u.goal}) and approved category (${primary.p.category}) under active admin rules.`;
     try {
       const ai = await ctx.runAction(api.services.aiProvider.aiComplete, {

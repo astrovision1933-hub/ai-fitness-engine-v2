@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { action, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal, api } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   SUPPLEMENT_EDU,
   parseLabel,
@@ -82,13 +83,13 @@ export const analyzeLabel = action({
       evidenceMissing: result.evidenceMissing,
       redFlags: result.redFlags,
       verificationSteps: result.verificationSteps,
-      priceIntel,
+      priceIntel: priceIntel ?? undefined,
     });
 
     // AI FITNESS RELEVANCE — context-aware enrichment (best-effort).
     let fitnessRelevance: string | null = null;
     try {
-      const bundle = await ctx.runQuery(internal.coachChat.getContextBundle, { userId });
+      const bundle = await ctx.runQuery(internal.coachContext.getContextBundle, { userId });
       const ai = await ctx.runAction(api.services.aiProvider.aiComplete, {
         system: [
           "You are the supplement-relevance module of an AI fitness coach.",
@@ -149,7 +150,7 @@ export const verifySupplement = action({
     identifier: v.string(),
     analysisId: v.optional(v.id("supplementAnalysis")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ id: Id<"supplementVerifications">; status: "instructions_provided"; brandName: string | null; officialUrl: string | null; message: string }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     if (!args.identifier.trim()) throw new Error("Enter the code / batch number / URL from the pack.");
@@ -187,7 +188,7 @@ export const verifySupplement = action({
 /* ------------------------------------------------------------------ */
 
 export const getMyAnalyses = query({
-  args: { limit: v.optional(v.number()) },
+  args: { limit: v.optional(v.number()), nonce: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
@@ -200,7 +201,7 @@ export const getMyAnalyses = query({
 });
 
 export const getMyVerifications = query({
-  args: {},
+  args: { nonce: v.optional(v.number()) },
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];

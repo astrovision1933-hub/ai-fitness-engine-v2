@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { action, mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 
 type Plan = Doc<"subscriptionPlans">;
 
@@ -346,6 +346,38 @@ export const getMyEntitlement = query({
  * Check + consume one AI message atomically. Throws when over the plan limit
  * with an actionable message. Returns remaining usage.
  */
+export const getMyUsage = query({
+  args: {},
+  handler: async (
+    ctx,
+  ): Promise<{
+    day: string;
+    used: number;
+    limit: number;
+    remaining: number;
+    planName: string;
+    planSlug: string;
+  } | null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const ent = await ctx.runQuery(internal.subscriptions.getEntitlement, { userId });
+    const day = new Date().toISOString().slice(0, 10);
+    const row = await ctx.db
+      .query("aiUsage")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId).eq("day", day))
+      .first();
+    const used = row?.messages ?? 0;
+    return {
+      day,
+      used,
+      limit: ent.aiMessageLimit,
+      remaining: ent.aiMessageLimit === -1 ? -1 : Math.max(0, ent.aiMessageLimit - used),
+      planName: ent.planName,
+      planSlug: ent.planSlug,
+    };
+  },
+});
+
 export const useAiMessage = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -399,7 +431,10 @@ export const validatePlayPurchase = action({
     packageName: v.optional(v.string()),
     orderId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ id: Id<"purchaseRecords">; status: string; message: string }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     if (!args.purchaseToken.trim()) throw new Error("purchaseToken is required.");
@@ -410,7 +445,7 @@ export const validatePlayPurchase = action({
     const hasCredentials = Boolean(process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON);
     const status = hasCredentials ? "pending" : "unverified";
 
-    const id = await ctx.runMutation(internal.subscriptions.savePurchase, {
+    const id = await ctx.runMutation(internal.subscriptionStore.savePurchase, {
       userId,
       platform: "android",
       productId: args.productId,
@@ -436,37 +471,6 @@ export const validatePlayPurchase = action({
         ? "Purchase recorded — pending server-side verification."
         : "Purchase recorded, but it is NOT verified and grants no premium access yet. Server-side verification with Google Play must be completed (Play Console + service account).",
     };
-  },
-});
-
-export const savePurchase = internalMutation({
-  args: {
-    userId: v.id("users"),
-    platform: v.string(),
-    productId: v.string(),
-    purchaseToken: v.string(),
-    orderId: v.optional(v.string()),
-    packageName: v.optional(v.string()),
-    status: v.string(),
-    note: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("purchaseRecords")
-      .withIndex("by_token", (q) => q.eq("purchaseToken", args.purchaseToken))
-      .first();
-    if (existing) return existing._id; // idempotent restore
-    return await ctx.db.insert("purchaseRecords", {
-      userId: args.userId,
-      platform: args.platform,
-      productId: args.productId,
-      purchaseToken: args.purchaseToken,
-      orderId: args.orderId,
-      packageName: args.packageName,
-      verificationStatus: args.status,
-      verificationNote: args.note,
-      createdAt: Date.now(),
-    });
   },
 });
 

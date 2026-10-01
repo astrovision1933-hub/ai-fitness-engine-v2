@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -8,16 +9,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 /* Auth guard — every admin function checks role from the users table   */
 /* ------------------------------------------------------------------ */
 
-async function requireAdmin<C extends { db: unknown; auth: unknown }>(ctx: C): Promise<Doc<"users">> {
-  const userId = await getAuthUserId(ctx as never);
-  if (!userId) throw new Error("Not authenticated");
-  const user = await (ctx.db as never as { get(id: string): Promise<Doc<"users"> | null> }).get(userId);
-  if (!user || user.role !== "admin") throw new Error("Admin access required");
-  if (user.disabled) throw new Error("Account disabled");
-  return user;
-}
-
-async function requireAdminMutation(ctx: Parameters<Parameters<typeof mutation>[0]["handler"]>[0]) {
+async function requireAdminMutation(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
   const user = await ctx.db.get(userId);

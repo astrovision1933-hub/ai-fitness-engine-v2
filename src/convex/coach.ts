@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction, internalQuery } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { classifyIntent } from "./services/intent";
 import { assessSafety } from "./services/safety";
@@ -10,15 +10,6 @@ import { assessSafety } from "./services/safety";
 // USER MESSAGE → INTENT → CONTEXT → SAFETY → SPECIALIZED SERVICE → AI → MEMORY
 // Runs as an internalAction so HTTP/public wrappers can stay thin.
 
-/** Minimal account state for the orchestrator gate. */
-export const getAccountState = internalQuery({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    return { disabled: user?.disabled ?? false };
-  },
-});
-
 export const orchestrateCoachReply = internalAction({
   args: {
     userId: v.id("users"),
@@ -27,9 +18,9 @@ export const orchestrateCoachReply = internalAction({
   },
   handler: async (ctx, args) => {
     // 0. ACCOUNT STATE — disabled accounts receive no AI processing.
-    const account = await ctx.runQuery(internal.coach.getAccountState, { userId: args.userId });
+    const account = await ctx.runQuery(internal.coachStore.getAccountState, { userId: args.userId });
     if (account.disabled) {
-      await ctx.runMutation(internal.coachChat.persistExchange, {
+      await ctx.runMutation(internal.coachContext.persistExchange, {
         userId: args.userId,
         conversationId: args.conversationId,
         userMessage: args.message,
@@ -47,7 +38,7 @@ export const orchestrateCoachReply = internalAction({
     // 2. SAFETY (short-circuits the AI on dangerous requests)
     const safety = assessSafety(args.message);
     if (safety.flagged) {
-      await ctx.runMutation(internal.coachChat.persistExchange, {
+      await ctx.runMutation(internal.coachContext.persistExchange, {
         userId: args.userId,
         conversationId: args.conversationId,
         userMessage: args.message,
@@ -70,7 +61,7 @@ export const orchestrateCoachReply = internalAction({
     } catch {
       const reply =
         "You've reached today's AI message limit for your current plan. You can upgrade in the SUBSCRIPTION module for a higher limit — your coaching history and plans are untouched.";
-      await ctx.runMutation(internal.coachChat.persistExchange, {
+      await ctx.runMutation(internal.coachContext.persistExchange, {
         userId: args.userId,
         conversationId: args.conversationId,
         userMessage: args.message,
@@ -83,7 +74,7 @@ export const orchestrateCoachReply = internalAction({
     }
 
     // 3. CONTEXT
-    const contextBundle = await ctx.runQuery(internal.coachChat.getContextBundle, {
+    const contextBundle = await ctx.runQuery(internal.coachContext.getContextBundle, {
       userId: args.userId,
     });
 
@@ -164,7 +155,7 @@ export const orchestrateCoachReply = internalAction({
       });
     }
 
-    await ctx.runMutation(internal.coachChat.persistExchange, {
+    await ctx.runMutation(internal.coachContext.persistExchange, {
       userId: args.userId,
       conversationId: args.conversationId,
       userMessage: args.message,

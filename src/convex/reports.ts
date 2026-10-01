@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { action, mutation, query, internalQuery } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -18,7 +19,7 @@ const KINDS: ReportKind[] = ["weekly", "monthly", "progress", "workout", "nutrit
 /** Check the user's plan allows another report this month (deterministic). */
 export const checkReportAllowance = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ used: number; limit: number; plan: string }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const ent = await ctx.runQuery(internal.subscriptions.getEntitlement, { userId });
@@ -39,7 +40,10 @@ export const checkReportAllowance = mutation({
 
 export const generateReport = action({
   args: { kind: v.union(...KINDS.map((k) => v.literal(k))) },
-  handler: async (ctx, args) => {
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ id: Id<"generatedReports">; content: string; period: { start: string; end: string } }> => {
     const userId = await getAuthUserId(ctx);
     if (userId === null) throw new Error("Not authenticated");
     const ent = await ctx.runQuery(internal.subscriptions.getEntitlement, { userId });

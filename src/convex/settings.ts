@@ -192,13 +192,11 @@ export const deleteMyAccountData = mutation({
       "fitnessGoals",
       "workoutPlans",
       "workoutSessions",
-      "aiMemory",
       "notifications",
       "supplementAnalysis",
       "supplementVerifications",
       "productRecommendations",
       "productComparisons",
-      "mealPlans",
       "mealLogs",
       "waterLogs",
       "activityLogs",
@@ -206,11 +204,9 @@ export const deleteMyAccountData = mutation({
       "weeklyReviews",
       "bodyMeasurements",
       "progressPhotos",
-      "bodybuildingGoals",
       "fitnessMilestones",
       "subscriptions",
       "purchaseRecords",
-      "aiUsage",
       "leadStates",
       "userSettings",
       "generatedReports",
@@ -227,6 +223,41 @@ export const deleteMyAccountData = mutation({
         await ctx.db.delete(row._id);
         deleted++;
       }
+    }
+    // Tables keyed differently: aiMemory (by_user_key), mealPlans
+    // (by_user_date), bodybuildingGoals (by_user_active), aiUsage
+    // (by_user_day) — all carry userId as first index field.
+    const usageRows = await ctx.db
+      .query("aiUsage")
+      .withIndex("by_user_day", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of usageRows) {
+      await ctx.db.delete(row._id);
+      deleted++;
+    }
+    const memoryRows = await ctx.db
+      .query("aiMemory")
+      .withIndex("by_user_key", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of memoryRows) {
+      await ctx.db.delete(row._id);
+      deleted++;
+    }
+    const planRows = await ctx.db
+      .query("mealPlans")
+      .withIndex("by_user_date", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of planRows) {
+      await ctx.db.delete(row._id);
+      deleted++;
+    }
+    const bbGoals = await ctx.db
+      .query("bodybuildingGoals")
+      .withIndex("by_user_active", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of bbGoals) {
+      await ctx.db.delete(row._id);
+      deleted++;
     }
     // Tables without a by_user index (or keyed differently).
     const conversations = await ctx.db
