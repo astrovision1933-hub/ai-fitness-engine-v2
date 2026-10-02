@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionHeader, TerminalBadge } from "@/components/terminal";
+import { CoachWelcomeScreen } from "@/components/coach-welcome-screen";
 import { cn } from "@/lib/utils";
 import type { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -172,11 +173,16 @@ export default function Onboarding() {
   const [step, setStep] = useState(0);
   const [state, setState] = useState<OnboardingState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  // Set after a successful save → drives the coach welcome / saved confirmation screen.
+  const [assigned, setAssigned] = useState<{ name: string; coachTitle: string } | null>(null);
+  const [starting, setStarting] = useState(false);
 
   const seedPersonas = useMutation(api.coachPersonas.seedPersonasPublic);
-  const assignCoach = useMutation(api.profile.assignCoach);
+  const assignCoach = useMutation(api.coachJourney.assignCoach);
   const completeOnboarding = useMutation(api.profile.completeOnboarding);
   const generatePlan = useMutation(api.workouts.generatePlan);
+  const startJourney = useMutation(api.coachJourney.startJourney);
+  const markCoachWelcomeShown = useMutation(api.coachJourney.markCoachWelcomeShown);
 
   const personas = useQuery(api.coachPersonas.listPersonas);
   const [personaId, setPersonaId] = useState<string>("");
@@ -211,7 +217,7 @@ export default function Onboarding() {
       case 5:
         return !!state.dailyActivity && !!state.workType;
       case 6:
-        return state.goalDescription.trim().length > 0;
+        return state.goalDescription.trim().length > 0 && !!personaId;
       default:
         return false;
     }
@@ -255,15 +261,24 @@ export default function Onboarding() {
           waterIntakeLiters: state.waterIntakeLiters ? Number(state.waterIntakeLiters) : undefined,
         },
       });
+      let coachName: string | undefined;
+      let coachTitle = "Coach";
       if (personaId) {
-        await assignCoach({ personaId: personaId as Id<"coachPersonas"> });
+        const res = await assignCoach({ personaId: personaId as Id<"coachPersonas"> });
+        coachName = res.name;
+        coachTitle = res.coachTitle;
       }
       // Generate the first training plan from the profile.
       await generatePlan({});
       toast.success("Profile saved — assessment generated", {
         description: "Week 1 of your training plan is scheduled.",
       });
-      navigate("/dashboard");
+      if (coachName) {
+        setAssigned({ name: coachName, coachTitle });
+        setSubmitting(false);
+      } else {
+        navigate("/dashboard");
+      }
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to save profile");
@@ -272,6 +287,36 @@ export default function Onboarding() {
   };
 
   const stepValid = canAdvance();
+
+  async function handleAskCoach() {
+    await markCoachWelcomeShown({}).catch(() => undefined);
+    navigate("/coach");
+  }
+
+  async function handleStartJourney() {
+    setStarting(true);
+    try {
+      await markCoachWelcomeShown({}).catch(() => undefined);
+      await startJourney({});
+      navigate("/journey");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not start your journey");
+      setStarting(false);
+    }
+  }
+
+  if (assigned) {
+    return (
+      <CoachWelcomeScreen
+        userName={state.name.trim() || "athlete"}
+        coachName={assigned.name}
+        coachTitle={assigned.coachTitle}
+        onAskCoach={handleAskCoach}
+        onStartJourney={handleStartJourney}
+        starting={starting}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

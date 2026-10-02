@@ -132,6 +132,40 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_persona", ["personaId"]),
 
+    // Personalized coach onboarding + motivational journey state.
+    // `selectedCoachId` is the source of truth for "which coach is mine" and is
+    // kept in sync with userProfiles.coachPersonaId whenever a coach is assigned.
+    // Nothing here is fabricated: missions/check-ins are derived from real plan data.
+    coachJourney: defineTable({
+      userId: v.id("users"),
+      selectedCoachId: v.optional(v.id("coachPersonas")),
+      coachAssignedAt: v.optional(v.number()),
+      // One-time "✓ COACH ASSIGNED" first-time banner flag.
+      coachWelcomeShown: v.boolean(),
+      // Structured motivational course progress (survives logout).
+      motivationCourseId: v.optional(v.string()),
+      currentMotivationDay: v.number(),
+      completedMotivationDays: v.array(v.number()),
+      journeyStarted: v.boolean(),
+      todayMission: v.optional(
+        v.object({
+          date: v.string(),
+          focus: v.string(),
+          items: v.array(v.string()),
+        }),
+      ),
+      lastCoachCheckIn: v.optional(v.string()),
+      // Previous coaches are preserved (history is never deleted on switch).
+      coachHistory: v.array(
+        v.object({
+          personaId: v.id("coachPersonas"),
+          assignedAt: v.number(),
+          until: v.number(),
+        }),
+      ),
+      updatedAt: v.number(),
+    }).index("by_user", ["userId"]),
+
     conversations: defineTable({
       userId: v.id("users"),
       personaId: v.id("coachPersonas"),

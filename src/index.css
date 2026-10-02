@@ -333,6 +333,14 @@
     animation: wave 1.05s ease-in-out infinite;
     transform-origin: center bottom;
   }
+
+  /* personalized coach onboarding — subtle notification / reveal motion */
+  .anim-flash-in {
+    animation: flash-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-rise-in {
+    animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 @keyframes terminal-blink {
@@ -370,6 +378,14 @@
 @keyframes ring-pulse {
   0% { transform: scale(0.92); opacity: 0.9; }
   100% { transform: scale(1.22); opacity: 0; }
+}
+@keyframes flash-in {
+  from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Redesign sweep: legacy light selected-state tints used across older pages

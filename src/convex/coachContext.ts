@@ -30,7 +30,14 @@ export const getContextBundle = internalQuery({
       .order("desc")
       .take(3);
 
-    const persona = profile?.coachPersonaId ? await ctx.db.get(profile.coachPersonaId) : null;
+    const journey = await ctx.db
+      .query("coachJourney")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    // The journey's selectedCoachId is the source of truth for the assigned coach.
+    const personaId = journey?.selectedCoachId ?? profile?.coachPersonaId ?? null;
+    const persona = personaId ? await ctx.db.get(personaId) : null;
 
     const memories = await ctx.db
       .query("aiMemory")
@@ -88,6 +95,16 @@ export const getContextBundle = internalQuery({
     if (activeGoal)
       summaryLines.push(
         `GOAL: ${activeGoal.goal} — "${activeGoal.description ?? ""}" (target: ${activeGoal.targetDate ?? "not set"})`,
+      );
+    if (persona)
+      summaryLines.push(`ASSIGNED AI COACH: ${persona.name} (${persona.role})`);
+    if (journey?.journeyStarted)
+      summaryLines.push(
+        `MOTIVATIONAL JOURNEY: day ${journey.currentMotivationDay}; completed days: ${journey.completedMotivationDays.join(", ") || "none"}${
+          journey.todayMission
+            ? `; today's focus: ${journey.todayMission.focus}; mission: ${journey.todayMission.items.join("; ")}`
+            : ""
+        }`,
       );
     if (activePlan)
       summaryLines.push(`ACTIVE PLAN: ${activePlan.name} (${activePlan.weeks}w, ${activePlan.daysPerWeek}d/wk)`);

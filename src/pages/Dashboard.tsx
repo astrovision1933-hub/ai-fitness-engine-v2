@@ -3,6 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { Panel, StatChip, TerminalBadge, AsciiBar, StatusDot, SectionHeader } from "@/components/terminal";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
 import { CoachAvatar } from "@/components/coach-avatar";
+import { CoachJourneyCard } from "@/components/coach-journey-card";
 import { coachAccent, coachCardGradient } from "@/lib/coach-media";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "convex/react";
@@ -174,7 +175,7 @@ export default function Dashboard() {
 
   const seedPersonas = useMutation(api.coachPersonas.seedPersonasPublic);
   const ensureConversation = useMutation(api.coachChat.ensureConversation);
-  const assignCoach = useMutation(api.profile.assignCoach);
+  const assignCoach = useMutation(api.coachJourney.assignCoach);
 
   useEffect(() => {
     seedPersonas({}).catch(() => undefined);
@@ -201,8 +202,10 @@ export default function Dashboard() {
   async function selectCoach(personaId: Id<"coachPersonas">) {
     try {
       await ensureConversation({ personaId });
-      await assignCoach({ personaId });
-      toast.success("Coach selected — opening chat");
+      const res = await assignCoach({ personaId });
+      toast.success(`${res.coachTitle} ${res.name} is now your AI Fitness Coach`, {
+        description: "Opening your coaching session…",
+      });
       navigate("/coach");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to select coach");
@@ -397,6 +400,9 @@ export default function Dashboard() {
             <HudPanel icon={Pill} label="Supplements" value="SCAN" sub="verify labels" to="/supplements" />
           </div>
         </section>
+
+        {/* ================= YOUR AI COACH / JOURNEY ================= */}
+        <CoachJourneyCard />
 
         {/* ================= CHOOSE YOUR AI COACH ================= */}
         <section>

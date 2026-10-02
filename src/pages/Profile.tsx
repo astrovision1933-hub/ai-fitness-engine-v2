@@ -25,7 +25,7 @@ export default function Profile() {
 
   const updateGoal = useMutation(api.profile.updateGoal);
   const addMeasurement = useMutation(api.profile.addMeasurement);
-  const assignCoach = useMutation(api.profile.assignCoach);
+  const assignCoach = useMutation(api.coachJourney.assignCoach);
   const savePreferences = useMutation(api.profile.savePreferences);
 
   const [goalOpen, setGoalOpen] = useState(false);
@@ -101,8 +101,13 @@ export default function Profile() {
 
   async function handleCoach(personaId: Id<"coachPersonas">) {
     try {
-      await assignCoach({ personaId });
-      toast.success("Coach updated");
+      const res = await assignCoach({ personaId });
+      toast.success(
+        res.isChange
+          ? `${res.coachTitle} ${res.name} is now your AI Fitness Coach`
+          : `${res.coachTitle} ${res.name} assigned`,
+        { description: "Your workout, nutrition and progress history is preserved." },
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update coach");
     }

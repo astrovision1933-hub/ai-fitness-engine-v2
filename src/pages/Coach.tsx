@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AppShell } from "@/components/AppShell";
 import { Panel, TerminalBadge, StatusDot } from "@/components/terminal";
+import { CoachAvatar } from "@/components/coach-avatar";
+import { coachAccent } from "@/lib/coach-media";
+import { coachFullName } from "@/lib/coach-voice";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { INTENT_LABELS } from "@/lib/labels";
@@ -36,6 +39,7 @@ export default function Coach() {
 
   const personas = useQuery(api.coachPersonas.listPersonas);
   const profile = useQuery(api.profile.getProfile);
+  const journey = useQuery(api.coachJourney.getJourney);
   const latest = useQuery(api.coachChat.getLatestConversation);
   const conversations = useQuery(api.coachChat.listConversations);
   const ent = useQuery(api.subscriptions.getMyEntitlement, {});
@@ -49,7 +53,7 @@ export default function Coach() {
 
   const ensureConversation = useMutation(api.coachChat.ensureConversation);
   const sendMessage = useMutation(api.coachChat.sendMessage);
-  const assignCoach = useMutation(api.profile.assignCoach);
+  const assignCoach = useMutation(api.coachJourney.assignCoach);
   const seedPersonas = useMutation(api.coachPersonas.seedPersonasPublic);
 
   const [input, setInput] = useState("");
@@ -150,18 +154,25 @@ export default function Coach() {
   async function handleSwitchPersona(personaId: Id<"coachPersonas">) {
     try {
       await ensureConversation({ personaId });
-      await assignCoach({ personaId });
+      const res = await assignCoach({ personaId });
       // Reload the newest conversation for that persona.
       setConversationId(null);
-      toast.success("Coach switched");
+      toast.success(
+        res.isChange
+          ? `${res.coachTitle} ${res.name} is now your AI Fitness Coach`
+          : `${res.coachTitle} ${res.name} assigned`,
+        { description: "Your workout, nutrition and progress history is untouched." },
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to switch coach");
     }
   }
 
-  const activePersona = personas?.find(
-    (p) => p._id === profile?.coachPersonaId,
-  );
+  // Assigned coach resolution: profile.coachPersonaId is kept in sync with the
+  // journey's selectedCoachId, so the assigned coach is always auto-selected.
+  const activePersona =
+    personas?.find((p) => p._id === profile?.coachPersonaId) ??
+    personas?.find((p) => p._id === journey?.coach?._id);
 
   const loading = personas === undefined || profile === undefined;
 
@@ -190,11 +201,13 @@ export default function Coach() {
                       : "border-border bg-card hover:border-muted-foreground/40",
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-status-ok">{p.avatarGlyph}</span>
-                    <span className="text-xs font-bold tracking-wide">{p.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <CoachAvatar name={p.name} accent={coachAccent(p.name)} className="size-9" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold tracking-wide">{coachFullName(p.name)}</div>
+                      <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{p.role}</div>
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-muted-foreground">{p.role}</div>
                 </button>
               ))}
             </div>
@@ -231,7 +244,11 @@ export default function Coach() {
         {/* chat column */}
         <Panel
           title="AI COACH CHAT"
-          subtitle={activePersona ? `${activePersona.name} — ${activePersona.role}` : "AI PERSONAS — NOT REAL HUMANS"}
+          subtitle={
+            activePersona
+              ? `${coachFullName(activePersona.name)} · YOUR PERSONAL AI FITNESS COACH`
+              : "AI PERSONAS — NOT REAL HUMANS"
+          }
           right={
             <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               <StatusDot tone={pendingReply ? "warn" : "ok"} pulse={pendingReply} />

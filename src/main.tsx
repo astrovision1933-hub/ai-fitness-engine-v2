@@ -15,6 +15,7 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Coach = lazy(() => import("./pages/Coach.tsx"));
+const Journey = lazy(() => import("./pages/Journey.tsx"));
 const Workout = lazy(() => import("./pages/Workout.tsx"));
 const Nutrition = lazy(() => import("./pages/Nutrition.tsx"));
 const Progress = lazy(() => import("./pages/Progress.tsx"));
@@ -166,6 +167,14 @@ createRoot(document.getElementById("root")!).render(
                 element={
                   <RequireAuth>
                     <Coach />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/journey"
+                element={
+                  <RequireAuth>
+                    <Journey />
                   </RequireAuth>
                 }
               />
