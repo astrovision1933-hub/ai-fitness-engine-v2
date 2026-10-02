@@ -74,13 +74,19 @@ const SEARCH_INDEX = [
 
 function EngineMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect x="1" y="1" width="30" height="30" rx="8" fill="#0c110c" stroke="var(--terminal-green)" strokeOpacity="0.6" />
+    <svg viewBox="0 0 40 40" className={className} aria-hidden>
+      <path
+        d="M20 2.5 35.5 11.5v17L20 37.5 4.5 28.5v-17z"
+        fill="#0b100b"
+        stroke="var(--terminal-green)"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <g fill="var(--terminal-green)">
-        <rect x="9" y="8.5" width="14" height="3.2" rx="1" />
-        <rect x="9" y="13.5" width="4.2" height="11" rx="1" />
-        <rect x="14.5" y="15.5" width="8.5" height="3.2" rx="1" />
-        <rect x="14.5" y="20.3" width="8.5" height="3.2" rx="1" />
+        <rect x="13" y="10" width="14" height="3.2" rx="1.2" />
+        <rect x="13" y="15" width="4.4" height="15" rx="1.2" />
+        <rect x="18.5" y="17" width="8.5" height="3.2" rx="1.2" />
+        <rect x="18.5" y="22" width="8.5" height="3.2" rx="1.2" />
       </g>
     </svg>
   );
@@ -94,29 +100,22 @@ function NavLinkRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => vo
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+          "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold transition-all duration-200",
           isActive
-            ? "border border-primary/25 bg-primary/10 text-primary-foreground text-[#dcff8a] shadow-[inset_0_0_18px_rgba(163,230,53,0.08)]"
-            : "border border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground",
+            ? "bg-gradient-to-r from-[#d0ff67] via-[#a3e635] to-[#65d413] text-[#0a1205] shadow-[0_0_22px_var(--neon-glow)]"
+            : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground",
         )
       }
     >
       {({ isActive }) => (
         <>
-          <span
-            className={cn(
-              "absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full bg-primary shadow-[0_0_10px_var(--neon-glow)] transition-opacity",
-              isActive ? "opacity-100" : "opacity-0",
-            )}
-            aria-hidden
-          />
           <Icon
             className={cn(
               "size-[18px] shrink-0 transition-all duration-200",
-              isActive ? "text-primary drop-shadow-[0_0_6px_var(--neon-glow)]" : "text-muted-foreground group-hover:text-foreground",
+              isActive ? "text-[#0a1205]" : "text-muted-foreground group-hover:text-foreground",
             )}
           />
-          <span className="font-display tracking-wide">{item.label}</span>
+          <span className="tracking-wide">{item.label}</span>
         </>
       )}
     </NavLink>
@@ -126,39 +125,27 @@ function NavLinkRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => vo
 function SidebarBody({ isAdmin, planLabel, onNavigate }: { isAdmin: boolean; planLabel: string; onNavigate?: () => void }) {
   return (
     <>
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Primary">
-        <div className="space-y-1">
-          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">Main</p>
-          {MAIN_NAV.map((item) => (
-            <NavLinkRow key={item.to} item={item} onNavigate={onNavigate} />
-          ))}
-        </div>
-        <div className="space-y-1">
-          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">Modules</p>
-          {MODULE_NAV.map((item) => (
-            <NavLinkRow key={item.to} item={item} onNavigate={onNavigate} />
-          ))}
-        </div>
-        <div className="space-y-1">
-          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">Account</p>
-          {ACCOUNT_NAV.map((item) => (
-            <NavLinkRow key={item.to} item={item} onNavigate={onNavigate} />
-          ))}
-          {isAdmin && <NavLinkRow item={ADMIN_NAV} onNavigate={onNavigate} />}
-        </div>
+      <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-4" aria-label="Primary">
+        {[...MAIN_NAV, ...MODULE_NAV, ...ACCOUNT_NAV].map((item) => (
+          <NavLinkRow key={item.to} item={item} onNavigate={onNavigate} />
+        ))}
+        {isAdmin && <NavLinkRow item={ADMIN_NAV} onNavigate={onNavigate} />}
       </nav>
 
       {/* premium upgrade card */}
       <div className="p-3">
         {planLabel.toLowerCase() === "free" ? (
-          <div className="gold-glow relative overflow-hidden rounded-xl border border-[#f0b429]/25 bg-gradient-to-b from-[#191408] to-[#0d110c] p-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg" aria-hidden>👑</span>
-              <p className="font-display text-sm font-bold uppercase tracking-[0.14em] text-[#f0b429]">
-                Upgrade to Premium
+          <div className="gold-glow relative overflow-hidden rounded-xl border border-[#f0b429]/35 bg-gradient-to-b from-[#191408] to-[#0d110c] p-4">
+            <div className="flex flex-col items-center text-center">
+              <span className="text-xl" aria-hidden>👑</span>
+              <p className="font-display mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#f0b429]/80">
+                Upgrade to
+              </p>
+              <p className="font-display text-lg font-bold uppercase tracking-[0.1em] text-[#f0b429]">
+                Premium
               </p>
             </div>
-            <ul className="mt-2.5 space-y-1.5 text-[11px] text-foreground/85">
+            <ul className="mt-3 space-y-1.5 text-[11px] text-foreground/85">
               {["Personalized Plans", "Advanced AI Coach", "Detailed Analytics", "Product Recommendations"].map((f) => (
                 <li key={f} className="flex items-center gap-2">
                   <span className="text-primary" aria-hidden>✓</span>
@@ -169,7 +156,7 @@ function SidebarBody({ isAdmin, planLabel, onNavigate }: { isAdmin: boolean; pla
             <Link
               to="/subscription"
               onClick={onNavigate}
-              className="mt-3 block rounded-lg bg-gradient-to-r from-[#f0b429] to-[#d0ff67] px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#1a1405] transition-all duration-200 hover:brightness-110 hover:-translate-y-px"
+              className="mt-3.5 block rounded-lg bg-gradient-to-r from-[#f0b429] to-[#d0ff67] px-3 py-2 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-[#1a1405] transition-all duration-200 hover:brightness-110 hover:-translate-y-px"
             >
               Upgrade Now
             </Link>
@@ -196,6 +183,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const planLabel = ent?.planName ?? "Free";
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -243,6 +231,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ================= TOP COMMAND BAR ================= */}
       <header className="glass fixed inset-x-0 top-0 z-50 border-b border-border">
         <div className="flex h-16 items-center gap-3 px-3 sm:px-5">
+          <button
+            className="hidden rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground lg:inline-flex"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            aria-expanded={sidebarOpen}
+          >
+            <Menu className="size-5" />
+          </button>
           <button
             className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground lg:hidden"
             onClick={() => setDrawerOpen(true)}
@@ -301,7 +297,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Bell className="size-[18px]" />
               {notifCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground shadow-[0_0_8px_var(--neon-glow)]">
+                <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-[#ef4444] text-[9px] font-bold text-white shadow-[0_0_8px_rgba(239,68,68,0.55)]">
                   {notifCount}
                 </span>
               )}
@@ -366,12 +362,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ================= LEFT SIDEBAR (desktop) ================= */}
-      <aside className="fixed bottom-0 left-0 top-16 z-40 hidden w-[248px] flex-col border-r border-border bg-sidebar/85 backdrop-blur-md lg:flex">
+      <aside
+        className={cn(
+          "fixed bottom-0 left-0 top-16 z-40 hidden w-[248px] flex-col border-r border-border bg-sidebar/85 backdrop-blur-md transition-transform duration-300 lg:flex",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         <SidebarBody isAdmin={isAdmin} planLabel={planLabel} />
       </aside>
 
       {/* ================= CONTENT ================= */}
-      <div className="lg:pl-[248px]">
+      <div className={cn("transition-[padding] duration-300", sidebarOpen ? "lg:pl-[248px]" : "lg:pl-0")}>
         <main className="mx-auto w-full max-w-6xl px-3 pb-28 pt-5 sm:px-5 lg:pb-10">{children}</main>
 
         <footer className="border-t border-border/60 px-5 py-4 lg:pl-0">
