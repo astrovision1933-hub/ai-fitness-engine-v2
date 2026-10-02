@@ -131,10 +131,10 @@ export const orchestrateCoachReply = internalAction({
       replyText = [
         "⚠️ AI ENGINE OFFLINE — could not generate a live reply for this message.",
         "",
-        "Cause: AI provider unreachable (missing or invalid VLY_INTEGRATION_KEY, or provider error).",
+        "Cause: no AI provider reachable (OPENROUTER_API_KEY / GEMINI_API_KEY / VLY_INTEGRATION_KEY missing, rate-limited or failing).",
         "Safety checks, usage limits and lead tracking still ran for this message.",
         "",
-        "To enable live coaching replies, set VLY_INTEGRATION_KEY in Keys → API keys.",
+        "To enable live coaching replies, add OPENROUTER_API_KEY or GEMINI_API_KEY in Keys → API keys.",
       ].join("\n");
     }
 
