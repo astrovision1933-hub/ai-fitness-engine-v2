@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/* Reusable Terminal-theme primitives shared across all pages. */
+/* Reusable command-center primitives shared across all pages.
+   Same API as before — restyled for the cyber-athletic theme. */
 
 export function Panel({
   title,
@@ -16,12 +17,20 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("border border-border bg-card", className)}>
+    <section
+      className={cn(
+        "rounded-xl border border-border bg-card/70 shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md",
+        className,
+      )}
+    >
       {title && (
-        <header className="flex items-center justify-between gap-2 border-b border-border bg-secondary/60 px-4 py-2">
-          <div className="min-w-0">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em]">{title}</h2>
-            {subtitle && <p className="truncate text-[11px] text-muted-foreground">{subtitle}</p>}
+        <header className="flex items-center justify-between gap-2 rounded-t-xl border-b border-border bg-secondary/40 px-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="h-4 w-1 shrink-0 rounded-full bg-primary shadow-[0_0_10px_var(--neon-glow)]" aria-hidden />
+            <div className="min-w-0">
+              <h2 className="font-display truncate text-xs font-semibold uppercase tracking-[0.18em]">{title}</h2>
+              {subtitle && <p className="truncate text-[11px] text-muted-foreground">{subtitle}</p>}
+            </div>
           </div>
           {right}
         </header>
@@ -44,9 +53,9 @@ export function StatChip({ label, value, tone = "ink" }: { label: string; value:
   const toneClass =
     tone === "ok" ? "text-status-ok" : tone === "warn" ? "text-status-warn" : tone === "info" ? "text-status-info" : "";
   return (
-    <div className="border border-border bg-secondary/50 px-3 py-2">
+    <div className="glass-soft rounded-lg px-3 py-2">
       <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
-      <div className={cn("mt-0.5 text-lg font-semibold", toneClass)}>{value}</div>
+      <div className={cn("font-display mt-0.5 text-lg font-semibold", toneClass)}>{value}</div>
     </div>
   );
 }
@@ -54,8 +63,8 @@ export function StatChip({ label, value, tone = "ink" }: { label: string; value:
 export function SectionHeader({ index, title, hint }: { index: string; title: string; hint?: string }) {
   return (
     <div className="mb-1 flex items-baseline gap-2">
-      <span className="text-status-ok">[{index}]</span>
-      <span className="text-xs font-semibold uppercase tracking-[0.18em]">{title}</span>
+      <span className="font-display text-status-ok">[{index}]</span>
+      <span className="font-display text-sm font-semibold uppercase tracking-[0.18em]">{title}</span>
       {hint && <span className="hidden text-[11px] text-muted-foreground sm:inline">— {hint}</span>}
     </div>
   );
@@ -70,16 +79,16 @@ export function TerminalBadge({
 }) {
   const toneClass =
     tone === "ok"
-      ? "border-terminal-green/40 bg-[#eef3ea] text-status-ok"
+      ? "border-primary/30 bg-primary/10 text-status-ok"
       : tone === "warn"
-        ? "border-terminal-amber/40 bg-[#fdf3e7] text-status-warn"
+        ? "border-terminal-amber/30 bg-terminal-amber/10 text-status-warn"
         : tone === "info"
-          ? "border-terminal-cyan/40 bg-[#e8f4f6] text-status-info"
+          ? "border-terminal-cyan/30 bg-terminal-cyan/10 text-status-info"
           : "border-border bg-secondary text-foreground";
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.14em]",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em]",
         toneClass,
       )}
     >
@@ -91,7 +100,10 @@ export function TerminalBadge({
 export function AsciiBar({ value, width = 20 }: { value: number; width?: number }) {
   const filled = Math.round(Math.max(0, Math.min(1, value)) * width);
   return (
-    <span className="font-mono text-[11px] tracking-tight text-status-ok" aria-label={`${Math.round(value * 100)}%`}>
+    <span
+      className="font-mono text-[11px] tracking-tight text-status-ok"
+      aria-label={`${Math.round(value * 100)}%`}
+    >
       [{"█".repeat(filled)}{"·".repeat(width - filled)}]
     </span>
   );
@@ -99,7 +111,13 @@ export function AsciiBar({ value, width = 20 }: { value: number; width?: number 
 
 export function StatusDot({ tone = "ok", pulse = false }: { tone?: "ok" | "warn" | "info" | "off"; pulse?: boolean }) {
   const color =
-    tone === "ok" ? "bg-[#23a03c]" : tone === "warn" ? "bg-[#b45309]" : tone === "info" ? "bg-[#0e7490]" : "bg-muted-foreground/40";
+    tone === "ok"
+      ? "bg-primary"
+      : tone === "warn"
+        ? "bg-terminal-amber"
+        : tone === "info"
+          ? "bg-terminal-cyan"
+          : "bg-muted-foreground/40";
   return (
     <span
       className={cn("inline-block size-1.5 rounded-full", color, pulse && "animate-pulse")}

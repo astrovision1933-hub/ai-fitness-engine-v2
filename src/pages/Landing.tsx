@@ -1,245 +1,321 @@
-import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { AIFitnessRobot } from "@/components/ai-fitness-robot";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { StatusDot } from "@/components/terminal";
-
-const CORE_LOOP = ["UNDERSTAND", "ASSESS", "PLAN", "COACH", "TRACK", "ADAPT"];
+import {
+  Apple,
+  ArrowRight,
+  Bot,
+  Brain,
+  ClipboardList,
+  Dumbbell,
+  Gauge,
+  MessageSquare,
+  Pill,
+  RefreshCw,
+  ShieldCheck,
+  TrendingUp,
+  Zap,
+} from "lucide-react";
 
 const COACHES = [
-  { name: "ARJUN", role: "STRENGTH & MUSCLE" },
-  { name: "VEER", role: "FAT LOSS" },
-  { name: "AARAV", role: "NUTRITION" },
-  { name: "KABIR", role: "BODYBUILDING" },
-  { name: "RHEA", role: "WOMEN'S FITNESS" },
-  { name: "RUDRA", role: "COMPETITION PREP" },
-  { name: "MAX", role: "BEGINNER FITNESS" },
-  { name: "ATHENA", role: "SUPPLEMENT INTELLIGENCE" },
-  { name: "COACH PRIME", role: "ADVANCED COACHING" },
+  { name: "ARJUN", spec: "Strength & Muscle", grad: "linear-gradient(160deg,#f0b42933,#0c110c)" },
+  { name: "VEER", spec: "Fat Loss", grad: "linear-gradient(160deg,#67e8f933,#0c110c)" },
+  { name: "AARAV", spec: "Nutrition Coach", grad: "linear-gradient(160deg,#a3e63533,#0c110c)" },
+  { name: "KABIR", spec: "Bodybuilding", grad: "linear-gradient(160deg,#f8717133,#0c110c)" },
+  { name: "RHEA", spec: "Women's Fitness", grad: "linear-gradient(160deg,#f472b633,#0c110c)" },
+  { name: "RUDRA", spec: "Competition Prep", grad: "linear-gradient(160deg,#a78bfa33,#0c110c)" },
+  { name: "MAX", spec: "Beginner Fitness", grad: "linear-gradient(160deg,#34d39933,#0c110c)" },
+  { name: "ATHENA", spec: "Supplement Intel", grad: "linear-gradient(160deg,#c084fc33,#0c110c)" },
+  { name: "COACH PRIME", spec: "Advanced Coaching", grad: "linear-gradient(160deg,#fbbf2433,#0c110c)" },
 ];
 
 const FEATURES = [
   {
-    id: "01",
-    title: "PERSISTENT FITNESS PROFILE",
-    body: "Your body, schedule, equipment, diet pattern and lifestyle — structured data, not chat scrap.",
+    icon: Bot,
+    title: "AI Coach That Knows You",
+    desc: "A persistent memory model of your body, schedule, diet and equipment — every reply is built on your real data.",
   },
   {
-    id: "02",
-    title: "INTENT + CONTEXT ENGINES",
-    body: "Every message is classified and answered with your real profile, goal, plan and history loaded.",
+    icon: Dumbbell,
+    title: "Smart Workout Engine",
+    desc: "Personalized plans that adapt as you train, with session tracking and auto-progression.",
   },
   {
-    id: "03",
-    title: "STRUCTURED ASSESSMENT",
-    body: "Onboarding ends with a full analysis: starting point, obstacles, strategy, tracking metrics.",
+    icon: Apple,
+    title: "Nutrition Intelligence",
+    desc: "Daily targets, meal plans and diet analysis tuned to your goal — not generic templates.",
   },
   {
-    id: "04",
-    title: "WORKOUT ENGINE",
-    body: "Plans generated from your goal, days, equipment and time. Log sets, weights, reps per session.",
+    icon: Pill,
+    title: "Supplement & Product Checks",
+    desc: "AI label analysis, authenticity signals and product comparisons before you spend a rupee.",
   },
   {
-    id: "05",
-    title: "SAFETY FOUNDATION",
-    body: "Dangerous protocols are refused before the AI even runs. No diagnosis. No PED protocols.",
+    icon: TrendingUp,
+    title: "Progress Command Deck",
+    desc: "Check-ins, analytics and weekly reports that show exactly what is working.",
   },
   {
-    id: "06",
-    title: "STRUCTURED MEMORY",
-    body: "Short-term conversation, long-term profile, event log of workouts and goal changes.",
+    icon: ShieldCheck,
+    title: "Safety First, Always On",
+    desc: "Built-in safety engine blocks extreme dieting and medical red-flag advice — 24/7.",
   },
 ];
 
-const SYSTEM_LINES = [
-  "> intent engine ......... ONLINE",
-  "> context engine ........ ONLINE",
-  "> assessment service .... READY",
-  "> workout engine ........ READY",
-  "> safety layer .......... ARMED",
-  "> memory architecture ... 4 SCOPES",
+const CORE_LOOP = [
+  { icon: Brain, title: "Understand", desc: "Goal, body & lifestyle" },
+  { icon: Gauge, title: "Assess", desc: "Analyze current status" },
+  { icon: ClipboardList, title: "Plan", desc: "Personalized workout & diet" },
+  { icon: MessageSquare, title: "Coach", desc: "Real-time guidance" },
+  { icon: TrendingUp, title: "Track", desc: "Monitor every day" },
+  { icon: RefreshCw, title: "Adapt", desc: "Improve from results" },
 ];
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
-  const navigate = useNavigate();
-
-  const primaryHref = isAuthenticated ? "/dashboard" : "/auth";
-  const primaryLabel = isAuthenticated ? "OPEN CONSOLE →" : "INITIALIZE ACCOUNT →";
+  const primaryTo = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
+  const primaryLabel = isAuthenticated ? "Open Command Center" : "Get Started";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="min-h-screen bg-background"
-    >
+    <div className="min-h-screen bg-atmo">
       {/* top bar */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <span className="border border-terminal-green/50 bg-[#eef3ea] px-1.5 py-0.5 text-[11px] font-bold tracking-[0.2em] text-status-ok">
-              AFE
+      <header className="glass sticky top-0 z-50 border-b border-border">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <svg viewBox="0 0 32 32" className="size-9 drop-shadow-[0_0_8px_var(--neon-glow)]" aria-hidden>
+              <rect x="1" y="1" width="30" height="30" rx="8" fill="#0c110c" stroke="var(--terminal-green)" strokeOpacity="0.6" />
+              <g fill="var(--terminal-green)">
+                <rect x="9" y="8.5" width="14" height="3.2" rx="1" />
+                <rect x="9" y="13.5" width="4.2" height="11" rx="1" />
+                <rect x="14.5" y="15.5" width="8.5" height="3.2" rx="1" />
+                <rect x="14.5" y="20.3" width="8.5" height="3.2" rx="1" />
+              </g>
+            </svg>
+            <span className="leading-tight">
+              <span className="font-display block text-[15px] font-bold tracking-wide">
+                AI <span className="neon-text">FITNESS</span> ENGINE
+              </span>
+              <span className="block text-[9px] font-medium uppercase tracking-[0.34em] text-muted-foreground">
+                Train • Track • Transform
+              </span>
             </span>
-            <span className="text-xs font-semibold uppercase tracking-[0.22em]">AI Fitness Engine</span>
           </div>
-          <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-2.5">
             {!isLoading && isAuthenticated ? (
-              <Button asChild size="sm" className="text-[11px] uppercase tracking-[0.14em]">
-                <Link to="/dashboard">Open console</Link>
+              <Button
+                asChild
+                className="h-9 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_20px_var(--neon-glow)] hover:brightness-110"
+              >
+                <Link to="/dashboard">Open App</Link>
               </Button>
             ) : (
-              <Button asChild variant="outline" size="sm" className="text-[11px] uppercase tracking-[0.14em]">
-                <Link to="/auth">Sign in</Link>
-              </Button>
+              <>
+                <Link
+                  to="/auth"
+                  className="glass-soft lift rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-foreground hover:border-primary/30 hover:text-[#dcff8a]"
+                >
+                  Sign In
+                </Link>
+                <Button
+                  asChild
+                  className="h-9 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_20px_var(--neon-glow)] hover:brightness-110"
+                >
+                  <Link to="/auth?returnTo=/dashboard">Start Free</Link>
+                </Button>
+              </>
             )}
-          </div>
+          </nav>
         </div>
       </header>
 
-      {/* hero */}
-      <section className="scanline-grid border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24">
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-4 text-[11px] uppercase tracking-[0.3em] text-muted-foreground"
-          >
-            <StatusDot pulse /> SYSTEM ONLINE — 24/7 COACHING ENGINE
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.18 }}
-            className="max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl"
-          >
-            YOUR COACH DOESN'T SLEEP.
-            <span className="block text-status-ok terminal-cursor">NEITHER DOES THE ENGINE.</span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.26 }}
-            className="mt-6 max-w-xl text-sm leading-6 text-muted-foreground"
-          >
-            AI Fitness Engine is not a chatbot with a gym sticker. It builds a persistent model of
-            you — body, schedule, equipment, diet — then coaches, plans and tracks against it.
-            Every reply runs through intent, context and safety layers first.
-          </motion.p>
-
-          {/* boot readout */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.34 }}
-            className="mt-8 border border-border bg-card p-4 font-mono text-[11px] leading-5 text-muted-foreground sm:text-xs"
-          >
-            {SYSTEM_LINES.map((line) => (
-              <div key={line} className="flex justify-between gap-6">
-                <span>{line.split(" ....")[0] + " ...."}</span>
-                <span className="text-status-ok">{line.split(".... ")[1]}</span>
+      <main className="mx-auto max-w-6xl px-4 sm:px-6">
+        {/* ================= HERO ================= */}
+        <section className="neon-glow relative mt-6 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-[#0d130c] via-[#0a0e0a] to-[#070a07]">
+          <div
+            className="pointer-events-none absolute inset-0"
+            aria-hidden
+            style={{
+              background:
+                "radial-gradient(680px 340px at 88% 15%, rgba(163,230,53,0.11), transparent 60%), radial-gradient(460px 280px at 8% 95%, rgba(103,232,249,0.06), transparent 60%)",
+            }}
+          />
+          <div className="relative grid items-center gap-4 p-6 sm:p-10 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#dcff8a]">
+                <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden />
+                System Online — 24/7 Coaching Engine
+              </p>
+              <h1 className="font-display mt-5 text-4xl font-bold leading-[1.03] sm:text-6xl">
+                YOUR COACH
+                <br />
+                <span className="neon-text">DOESN&apos;T SLEEP.</span>
+                <br />
+                NEITHER DOES THE ENGINE.
+              </h1>
+              <p className="mt-5 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+                AI Fitness Engine builds a persistent model of you — body, schedule, diet, equipment and
+                goals — and helps you train, track and transform every single day.
+              </p>
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <Button
+                  asChild
+                  className="group h-12 rounded-xl bg-primary px-7 text-sm font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_26px_var(--neon-glow)] transition-all hover:-translate-y-0.5 hover:brightness-110"
+                >
+                  <Link to={primaryTo}>
+                    {primaryLabel}
+                    <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                  </Link>
+                </Button>
+                <a
+                  href="#coaches"
+                  className="glass-soft lift inline-flex h-12 items-center rounded-xl px-7 text-sm font-semibold uppercase tracking-[0.12em] text-foreground hover:border-primary/30 hover:text-[#dcff8a]"
+                >
+                  Explore Coaches
+                </a>
               </div>
-            ))}
-          </motion.div>
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3">
+                {[
+                  { icon: Zap, label: "Personalized AI Coaching" },
+                  { icon: Dumbbell, label: "Smart Workout Plans" },
+                  { icon: Apple, label: "Nutrition Guidance" },
+                  { icon: TrendingUp, label: "Progress Tracking" },
+                ].map((f) => (
+                  <span key={f.label} className="flex items-center gap-2 text-[11px] font-medium text-foreground/80">
+                    <span className="flex size-7 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                      <f.icon className="size-3.5" aria-hidden />
+                    </span>
+                    {f.label}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Button asChild size="lg" className="text-xs uppercase tracking-[0.18em]">
-              <Link to={primaryHref}>{primaryLabel}</Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-xs uppercase tracking-[0.18em]"
-              onClick={() => navigate("/coach")}
-            >
-              PREVIEW COACH →
-            </Button>
-            <span className="text-[11px] text-muted-foreground">email code sign-in · guest mode</span>
-          </div>
-        </div>
-      </section>
-
-      {/* core loop */}
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <p className="mb-6 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">THE CORE LOOP</p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
-            {CORE_LOOP.map((step, i) => (
-              <div key={step} className="flex items-center gap-2">
-                <span className="border border-terminal-green/40 bg-[#eef3ea] px-2.5 py-1.5 text-xs font-bold tracking-[0.18em] text-status-ok">
-                  {step}
+            {/* the robot */}
+            <div className="relative h-[320px] sm:h-[440px]">
+              <div className="glass absolute left-0 top-8 z-10 max-w-[210px] rounded-2xl border border-primary/35 p-3.5 shadow-[0_0_24px_rgba(163,230,53,0.18)] sm:left-2">
+                <p className="font-display text-sm font-semibold leading-snug">
+                  Hey!
+                  <br />
+                  I&apos;m your AI Fitness Coach.
+                </p>
+                <span className="mt-2 flex h-3 items-end gap-[3px]" aria-hidden>
+                  {[10, 16, 8, 14, 11].map((h, i) => (
+                    <span key={i} className="wave-bar" style={{ height: h, animationDelay: `${i * 0.12}s` }} />
+                  ))}
                 </span>
-                {i < CORE_LOOP.length - 1 && <span className="text-status-ok">↓</span>}
               </div>
-            ))}
+              <AIFitnessRobot state="idle" className="h-full w-full" />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* coach roster */}
-      <section className="border-b border-border bg-secondary/40">
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <p className="mb-6 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-            COACH ROSTER — 9 PERSONAS ONLINE
-          </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-            {COACHES.map((coach) => (
-              <div key={coach.name} className="border border-border bg-card px-3 py-3">
-                <div className="text-[11px] font-bold tracking-[0.14em]">{coach.name}</div>
-                <div className="mt-1 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                  {coach.role}
+        {/* ================= COACHES ================= */}
+        <section id="coaches" className="mt-12 scroll-mt-20">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="font-display flex items-center gap-2.5 text-xl font-bold">
+                <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_10px_var(--neon-glow)]" aria-hidden />
+                Choose Your AI Coach
+              </h2>
+              <p className="mt-0.5 pl-3.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                9 Expert Coaches Online
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {COACHES.map((c) => (
+              <div
+                key={c.name}
+                className="lift group relative overflow-hidden rounded-xl border border-border bg-card/70 backdrop-blur-md hover:border-primary/40 hover:shadow-[0_0_26px_rgba(163,230,53,0.16)]"
+                style={{ background: c.grad }}
+              >
+                <div className="flex flex-col items-center px-3 pb-4 pt-5 text-center">
+                  <span className="relative mb-3 flex size-14 items-center justify-center rounded-full border border-primary/30 bg-[#0c110c] font-display text-lg font-bold text-[#dcff8a] shadow-[0_0_18px_rgba(163,230,53,0.14)] transition-shadow duration-300 group-hover:shadow-[0_0_26px_var(--neon-glow)]">
+                    {c.name.charAt(0)}
+                    <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-background">
+                      <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden />
+                    </span>
+                  </span>
+                  <p className="font-display text-sm font-bold uppercase tracking-[0.1em]">{c.name}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{c.spec}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-status-ok">
+                    <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> Online
+                  </p>
                 </div>
-                <div className="mt-2 text-[10px] text-status-ok">● READY</div>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* features */}
-      <section className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <p className="mb-6 text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
-            ENGINE MODULES — PART 1
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div key={f.id} className="border border-border bg-card p-4">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[11px] font-bold tracking-[0.14em]">{f.title}</span>
-                  <span className="text-status-ok">{f.id}</span>
+        {/* ================= CORE LOOP ================= */}
+        <section className="mt-12">
+          <div className="mb-4">
+            <h2 className="font-display flex items-center gap-2.5 text-xl font-bold">
+              <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_10px_var(--neon-glow)]" aria-hidden />
+              The Core Loop
+            </h2>
+            <p className="mt-0.5 pl-3.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              From Understanding to Transformation
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            {CORE_LOOP.map((step, i) => (
+              <div key={step.title} className="glass-soft lift rounded-xl p-4 hover:border-primary/30">
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-2xl font-bold text-foreground/25">{i + 1}</span>
+                  <span className="flex size-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                    <step.icon className="size-[18px]" aria-hidden />
+                  </span>
                 </div>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">{f.body}</p>
+                <p className="font-display mt-3 text-sm font-bold uppercase tracking-[0.1em]">{step.title}</p>
+                <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{step.desc}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* final CTA */}
-      <section className="scanline-grid">
-        <div className="mx-auto max-w-6xl px-4 py-16 text-center">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            BOOT THE ENGINE. <span className="text-status-ok">RUN THE LOOP.</span>
+        {/* ================= FEATURES ================= */}
+        <section className="mt-12">
+          <h2 className="font-display flex items-center gap-2.5 text-xl font-bold">
+            <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_10px_var(--neon-glow)]" aria-hidden />
+            One Engine. Every System.
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-            Seven-step onboarding. Structured assessment. A plan built on your real constraints.
-          </p>
-          <Button asChild size="lg" className="mt-6 text-xs uppercase tracking-[0.18em]">
-            <Link to={primaryHref}>{primaryLabel}</Link>
-          </Button>
-        </div>
-      </section>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="glass-soft lift rounded-xl p-5 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(163,230,53,0.1)]">
+                <span className="flex size-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary shadow-[0_0_14px_rgba(163,230,53,0.14)]">
+                  <f.icon className="size-5" aria-hidden />
+                </span>
+                <p className="font-display mt-3.5 text-sm font-bold uppercase tracking-[0.08em]">{f.title}</p>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-          <span>AI FITNESS ENGINE — PART 1/4 · CORE PLATFORM + AI COACH</span>
-          <span>
-            AI PERSONAS — NOT REAL HUMANS · NO MEDICAL ADVICE
-          </span>
-        </div>
+        {/* ================= FINAL CTA ================= */}
+        <section className="neon-glow relative mt-12 overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-[#0d130c] to-[#0a100a] p-8 text-center sm:p-12">
+          <h2 className="font-display text-2xl font-bold sm:text-3xl">
+            THE ENGINE IS <span className="neon-text">WAITING.</span>
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+            Free plan included. Premium unlocks unlimited AI coaching, reports and product intelligence.
+          </p>
+          <Button
+            asChild
+            className="mt-6 h-12 rounded-xl bg-primary px-8 text-sm font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_26px_var(--neon-glow)] hover:-translate-y-0.5 hover:brightness-110"
+          >
+            <Link to={primaryTo}>{primaryLabel}</Link>
+          </Button>
+        </section>
+      </main>
+
+      <footer className="mt-12 border-t border-border/60 py-6">
+        <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          AI Fitness Engine — Core v0.1 · Train • Track • Transform
+        </p>
       </footer>
-    </motion.div>
+    </div>
   );
 }
