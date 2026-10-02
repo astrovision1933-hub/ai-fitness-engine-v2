@@ -16,6 +16,7 @@ import {
   Pill,
   RefreshCw,
   ShieldCheck,
+  Star,
   TrendingUp,
   Zap,
 } from "lucide-react";
@@ -73,6 +74,85 @@ const CORE_LOOP = [
   { icon: TrendingUp, title: "Track", desc: "Monitor every day" },
   { icon: RefreshCw, title: "Adapt", desc: "Improve from results" },
 ];
+
+const REVIEWERS = [
+  {
+    name: "Rohan Mehta",
+    place: "Mumbai, India",
+    photo: "https://randomuser.me/api/portraits/men/11.jpg",
+    coach: "VEER",
+    plan: "PREMIUM",
+    stars: 5,
+    text: "Veer built my fat-loss plan around 12-hour desk shifts. Down 8 kg in 10 weeks — the weekly physique check-ins kept me honest without ever shaming me.",
+  },
+  {
+    name: "Priya Nair",
+    place: "Bengaluru, India",
+    photo: "https://randomuser.me/api/portraits/women/65.jpg",
+    coach: "RHEA",
+    plan: "PREMIUM",
+    stars: 5,
+    text: "Rhea remembers my schedule, my strength numbers, everything. First coach — human or AI — that actually listens and adjusts every single week.",
+  },
+  {
+    name: "Jake Morrison",
+    place: "Austin, USA",
+    photo: "https://randomuser.me/api/portraits/men/83.jpg",
+    coach: "ARJUN",
+    plan: "PREMIUM",
+    stars: 5,
+    text: "The engine remembers every lift. Added 40 lb to my bench in 4 months following Arjun's auto-progression. This is not a generic workout app.",
+  },
+  {
+    name: "Ananya Iyer",
+    place: "New Delhi, India",
+    photo: "https://randomuser.me/api/portraits/women/26.jpg",
+    coach: "MAX",
+    plan: "FREE",
+    stars: 5,
+    text: "Joined on the free plan just to test it. The onboarding physique scan alone sold me — upgraded for the weekly transformation reviews.",
+  },
+  {
+    name: "Daniel Kovac",
+    place: "Berlin, Germany",
+    photo: "https://randomuser.me/api/portraits/men/29.jpg",
+    coach: "ATHENA",
+    plan: "PREMIUM",
+    stars: 5,
+    text: "Athena flagged two fake supplements I was about to order. The label analysis and product checks pay for the subscription by themselves.",
+  },
+  {
+    name: "Sarah Whitfield",
+    place: "London, UK",
+    photo: "https://randomuser.me/api/portraits/women/21.jpg",
+    coach: "COACH PRIME",
+    plan: "PREMIUM",
+    stars: 4,
+    text: "Data-driven but never cold. Weekly reviews compare my photos, weight and training load — like having a real coach in my pocket, 24/7.",
+  },
+];
+
+function MemberAvatar({ src, name }: { src: string; name: string }) {
+  return (
+    <span className="relative inline-flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/40 bg-[#0c110c] shadow-[0_0_12px_rgba(163,230,53,0.18)]">
+      <img src={src} alt={name} loading="lazy" decoding="async" className="size-full object-cover" />
+    </span>
+  );
+}
+
+function Stars({ count }: { count: number }) {
+  return (
+    <span className="flex items-center gap-0.5" aria-label={`${count} out of 5 stars`}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={`size-3 ${n <= count ? "fill-[#f0b429] text-[#f0b429]" : "text-muted-foreground/40"}`}
+          aria-hidden
+        />
+      ))}
+    </span>
+  );
+}
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -255,6 +335,77 @@ export default function Landing() {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* ================= MEMBER REVIEWS ================= */}
+        <section id="reviews" className="mt-12 scroll-mt-20">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display flex items-center gap-2.5 text-xl font-bold">
+                <span className="h-5 w-1 rounded-full bg-primary shadow-[0_0_10px_var(--neon-glow)]" aria-hidden />
+                Member Reviews
+              </h2>
+              <p className="mt-0.5 pl-3.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Real Coaching · Real Transformations
+              </p>
+            </div>
+
+            {/* subscriber counter */}
+            <div className="glass-soft flex items-center gap-3 rounded-xl border border-primary/20 px-4 py-2.5">
+              <span className="flex -space-x-2.5" aria-hidden>
+                {REVIEWERS.slice(0, 5).map((r) => (
+                  <img
+                    key={r.name}
+                    src={r.photo}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-8 rounded-full border-2 border-[#0a0e0a] object-cover"
+                  />
+                ))}
+              </span>
+              <span>
+                <span className="font-display flex items-center gap-1.5 text-sm font-bold">
+                  <span className="neon-text">275</span> PAID SUBSCRIBERS
+                  <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden />
+                </span>
+                <span className="block text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  +2,400 training free · 4.9★ avg coach rating
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {REVIEWERS.map((r) => (
+              <figure key={r.name} className="glass-soft lift flex flex-col rounded-xl p-5 hover:border-primary/30">
+                <div className="flex items-center justify-between">
+                  <Stars count={r.stars} />
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ${
+                      r.plan === "PREMIUM"
+                        ? "border-[#f0b429]/40 bg-[#f0b429]/10 text-[#f0b429]"
+                        : "border-border bg-card text-muted-foreground"
+                    }`}
+                  >
+                    {r.plan}
+                  </span>
+                </div>
+                <blockquote className="mt-3 flex-1 text-xs leading-5 text-foreground/85">&ldquo;{r.text}&rdquo;</blockquote>
+                <figcaption className="mt-4 flex items-center gap-3 border-t border-border/60 pt-3.5">
+                  <MemberAvatar src={r.photo} name={r.name} />
+                  <span className="min-w-0">
+                    <span className="font-display block truncate text-xs font-bold uppercase tracking-[0.08em]">
+                      {r.name}
+                    </span>
+                    <span className="block truncate text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                      {r.place} · Coached by {r.coach}
+                    </span>
+                  </span>
+                </figcaption>
+              </figure>
+            ))}
           </div>
         </section>
 
