@@ -114,12 +114,29 @@ export const orchestrateCoachReply = internalAction({
       }));
 
     // 4. SPECIALIZED SERVICE ROUTING + 5. AI RESPONSE
-    const result = await ctx.runAction(api.services.aiProvider.aiComplete, {
-      system: systemPrompt,
-      messages: [...recentTurns, { role: "user" as const, content: args.message }],
-      temperature: 0.65,
-      maxTokens: 700,
-    });
+    // Keyless/degraded fallback: everything before this (safety, usage limit,
+    // knowledge, lead signals) runs without AI. If the provider call fails —
+    // e.g. VLY_INTEGRATION_KEY missing — reply with a transparent notice
+    // instead of crashing the whole chat.
+    let replyText: string;
+    try {
+      const result = await ctx.runAction(api.services.aiProvider.aiComplete, {
+        system: systemPrompt,
+        messages: [...recentTurns, { role: "user" as const, content: args.message }],
+        temperature: 0.65,
+        maxTokens: 700,
+      });
+      replyText = result.text;
+    } catch {
+      replyText = [
+        "⚠️ AI ENGINE OFFLINE — could not generate a live reply for this message.",
+        "",
+        "Cause: AI provider unreachable (missing or invalid VLY_INTEGRATION_KEY, or provider error).",
+        "Safety checks, usage limits and lead tracking still ran for this message.",
+        "",
+        "To enable live coaching replies, set VLY_INTEGRATION_KEY in Keys → API keys.",
+      ].join("\n");
+    }
 
     // 6. MEMORY UPDATE — event memory for progress/goal updates, long-term for durable facts
     if (intent === "progress_update") {
@@ -159,7 +176,7 @@ export const orchestrateCoachReply = internalAction({
       userId: args.userId,
       conversationId: args.conversationId,
       userMessage: args.message,
-      assistantReply: result.text,
+      assistantReply: replyText,
       intent,
       intentConfidence: confidence,
       safetyFlag: false,

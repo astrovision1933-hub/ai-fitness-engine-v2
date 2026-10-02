@@ -21,9 +21,14 @@ export const aiComplete = action({
     maxTokens: v.optional(v.number()),
   },
   handler: async (_ctx, args) => {
-    const vly = createVlyIntegrations({
-      deploymentToken: process.env.VLY_INTEGRATION_KEY!,
-    });
+    const deploymentToken = process.env.VLY_INTEGRATION_KEY;
+    if (!deploymentToken) {
+      throw new Error(
+        "VLY_INTEGRATION_KEY is not set — add it under Keys → API keys to enable AI replies."
+      );
+    }
+
+    const vly = createVlyIntegrations({ deploymentToken });
 
     const result = await vly.ai.completion({
       model: "gpt-4o-mini",
