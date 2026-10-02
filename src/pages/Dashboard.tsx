@@ -2,6 +2,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { AppShell } from "@/components/AppShell";
 import { Panel, StatChip, TerminalBadge, AsciiBar, StatusDot, SectionHeader } from "@/components/terminal";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
+import { CoachAvatar } from "@/components/coach-avatar";
+import { coachAccent, coachCardGradient } from "@/lib/coach-media";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -62,16 +64,16 @@ const CORE_LOOP = [
   { icon: Target, title: "Adapt", desc: "Adjust and improve based on results", color: "#f87171" },
 ] as const;
 
-const COACH_META: Record<string, { specialty: string; icon: IconType; accent: string }> = {
-  arjun: { specialty: "Strength & Muscle", icon: Dumbbell, accent: "#f0b429" },
-  veer: { specialty: "Fat Loss", icon: Flame, accent: "#67e8f9" },
-  aarav: { specialty: "Nutrition Coach", icon: Apple, accent: "#a3e635" },
-  kabir: { specialty: "Bodybuilding", icon: Trophy, accent: "#f87171" },
-  rhea: { specialty: "Women's Fitness", icon: Heart, accent: "#f472b6" },
-  rudra: { specialty: "Competition Prep", icon: Medal, accent: "#a78bfa" },
-  max: { specialty: "Beginner Fitness", icon: Sparkles, accent: "#34d399" },
-  athena: { specialty: "Supplement Intel", icon: Pill, accent: "#c084fc" },
-  "coach prime": { specialty: "Advanced Coaching", icon: Crown, accent: "#fbbf24" },
+const COACH_META: Record<string, { specialty: string; icon: IconType }> = {
+  arjun: { specialty: "Strength & Muscle", icon: Dumbbell },
+  veer: { specialty: "Fat Loss", icon: Flame },
+  aarav: { specialty: "Nutrition Coach", icon: Apple },
+  kabir: { specialty: "Bodybuilding", icon: Trophy },
+  rhea: { specialty: "Women's Fitness", icon: Heart },
+  rudra: { specialty: "Competition Prep", icon: Medal },
+  max: { specialty: "Beginner Fitness", icon: Sparkles },
+  athena: { specialty: "Supplement Intel", icon: Pill },
+  "coach prime": { specialty: "Advanced Coaching", icon: Crown },
 };
 
 type IconType = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
@@ -335,7 +337,7 @@ export default function Dashboard() {
                   ))}
                 </span>
               </div>
-              <AIFitnessRobot state="idle" className="relative h-full w-full" />
+              <AIFitnessRobot state="idle" photoSrc="/robot-hero.png" className="relative h-full w-full" />
             </div>
 
             {/* --- far right: live HUD (real data) --- */}
@@ -423,34 +425,30 @@ export default function Dashboard() {
                   const meta = COACH_META[p.name.toLowerCase()] ?? {
                     specialty: "AI Fitness Coach",
                     icon: Sparkles,
-                    accent: "#a3e635",
                   };
                   const SpecialtyIcon = meta.icon;
+                  const accent = coachAccent(p.name);
                   return (
                     <div
                       key={p._id}
                       style={
                         {
-                          background: `linear-gradient(165deg, ${meta.accent}24, #0c110c 62%)`,
-                          borderColor: `${meta.accent}55`,
-                          "--coach-glow": `${meta.accent}44`,
+                          background: coachCardGradient(accent),
+                          borderColor: `${accent}55`,
+                          "--coach-glow": `${accent}44`,
                         } as React.CSSProperties
                       }
                       className="lift group relative overflow-hidden rounded-xl border bg-card/70 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_26px_var(--coach-glow)]"
                     >
                       <div className="flex flex-col items-center px-3 pb-3 pt-5 text-center">
-                        <span
-                          style={{ borderColor: `${meta.accent}66`, color: meta.accent }}
-                          className="relative mb-3 flex size-14 items-center justify-center rounded-full border bg-[#0c110c] font-display text-lg font-bold transition-all duration-300 group-hover:shadow-[0_0_22px_var(--coach-glow)]"
-                        >
-                          {p.name.charAt(0).toUpperCase()}
-                          <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-background">
-                            <span className="size-2 animate-pulse rounded-full bg-primary shadow-[0_0_6px_var(--neon-glow)]" aria-hidden />
-                          </span>
-                        </span>
+                        <CoachAvatar
+                          name={p.name}
+                          accent={accent}
+                          className="mb-3 transition-all duration-300 group-hover:shadow-[0_0_22px_var(--coach-glow)]"
+                        />
                         <p className="font-display text-sm font-bold uppercase tracking-[0.08em]">{p.name}</p>
                         <p className="mt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                          <SpecialtyIcon className="size-3" style={{ color: meta.accent }} aria-hidden />
+                          <SpecialtyIcon className="size-3" style={{ color: accent }} aria-hidden />
                           <span className="line-clamp-1">{meta.specialty}</span>
                         </p>
                         <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-status-ok">

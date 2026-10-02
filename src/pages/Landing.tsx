@@ -1,5 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
+import { CoachAvatar } from "@/components/coach-avatar";
+import { coachAccent, coachCardGradient } from "@/lib/coach-media";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,15 +21,15 @@ import {
 } from "lucide-react";
 
 const COACHES = [
-  { name: "ARJUN", spec: "Strength & Muscle", grad: "linear-gradient(160deg,#f0b42933,#0c110c)" },
-  { name: "VEER", spec: "Fat Loss", grad: "linear-gradient(160deg,#67e8f933,#0c110c)" },
-  { name: "AARAV", spec: "Nutrition Coach", grad: "linear-gradient(160deg,#a3e63533,#0c110c)" },
-  { name: "KABIR", spec: "Bodybuilding", grad: "linear-gradient(160deg,#f8717133,#0c110c)" },
-  { name: "RHEA", spec: "Women's Fitness", grad: "linear-gradient(160deg,#f472b633,#0c110c)" },
-  { name: "RUDRA", spec: "Competition Prep", grad: "linear-gradient(160deg,#a78bfa33,#0c110c)" },
-  { name: "MAX", spec: "Beginner Fitness", grad: "linear-gradient(160deg,#34d39933,#0c110c)" },
-  { name: "ATHENA", spec: "Supplement Intel", grad: "linear-gradient(160deg,#c084fc33,#0c110c)" },
-  { name: "COACH PRIME", spec: "Advanced Coaching", grad: "linear-gradient(160deg,#fbbf2433,#0c110c)" },
+  { name: "ARJUN", spec: "Strength & Muscle" },
+  { name: "VEER", spec: "Fat Loss" },
+  { name: "AARAV", spec: "Nutrition Coach" },
+  { name: "KABIR", spec: "Bodybuilding" },
+  { name: "RHEA", spec: "Women's Fitness" },
+  { name: "RUDRA", spec: "Competition Prep" },
+  { name: "MAX", spec: "Beginner Fitness" },
+  { name: "ATHENA", spec: "Supplement Intel" },
+  { name: "COACH PRIME", spec: "Advanced Coaching" },
 ];
 
 const FEATURES = [
@@ -205,7 +207,7 @@ export default function Landing() {
                   ))}
                 </span>
               </div>
-              <AIFitnessRobot state="idle" className="h-full w-full" />
+              <AIFitnessRobot state="idle" photoSrc="/robot-hero.png" className="h-full w-full" />
             </div>
           </div>
         </section>
@@ -224,27 +226,35 @@ export default function Landing() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {COACHES.map((c) => (
-              <div
-                key={c.name}
-                className="lift group relative overflow-hidden rounded-xl border border-border bg-card/70 backdrop-blur-md hover:border-primary/40 hover:shadow-[0_0_26px_rgba(163,230,53,0.16)]"
-                style={{ background: c.grad }}
-              >
-                <div className="flex flex-col items-center px-3 pb-4 pt-5 text-center">
-                  <span className="relative mb-3 flex size-14 items-center justify-center rounded-full border border-primary/30 bg-[#0c110c] font-display text-lg font-bold text-[#dcff8a] shadow-[0_0_18px_rgba(163,230,53,0.14)] transition-shadow duration-300 group-hover:shadow-[0_0_26px_var(--neon-glow)]">
-                    {c.name.charAt(0)}
-                    <span className="absolute -bottom-0.5 -right-0.5 flex size-3.5 items-center justify-center rounded-full bg-background">
-                      <span className="size-2 animate-pulse rounded-full bg-primary" aria-hidden />
-                    </span>
-                  </span>
-                  <p className="font-display text-sm font-bold uppercase tracking-[0.1em]">{c.name}</p>
-                  <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{c.spec}</p>
-                  <p className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-status-ok">
-                    <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> Online
-                  </p>
+            {COACHES.map((c) => {
+              const accent = coachAccent(c.name);
+              return (
+                <div
+                  key={c.name}
+                  className="lift group relative overflow-hidden rounded-xl border bg-card/70 backdrop-blur-md hover:shadow-[0_0_26px_var(--coach-glow)]"
+                  style={
+                    {
+                      background: coachCardGradient(accent),
+                      borderColor: `${accent}55`,
+                      "--coach-glow": `${accent}55`,
+                    } as React.CSSProperties
+                  }
+                >
+                  <div className="flex flex-col items-center px-3 pb-4 pt-5 text-center">
+                    <CoachAvatar
+                      name={c.name}
+                      accent={accent}
+                      className="mb-3 transition-shadow duration-300 group-hover:shadow-[0_0_26px_var(--coach-glow)]"
+                    />
+                    <p className="font-display text-sm font-bold uppercase tracking-[0.1em]">{c.name}</p>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{c.spec}</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-status-ok">
+                      <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden /> Online
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 

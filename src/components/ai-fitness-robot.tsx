@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,10 +21,21 @@ export type RobotState =
 export function AIFitnessRobot({
   state = "idle",
   className,
+  photoSrc = null,
 }: {
   state?: RobotState;
   className?: string;
+  /**
+   * Optional studio render / portrait to show for the calm `idle` hero state.
+   * Drop the image in `public/` and it is picked up automatically; if the file
+   * is missing or fails to load, the SVG robot takes over so the hero never
+   * renders a broken image. Live states (thinking / speaking / listening / …)
+   * always use the animated SVG.
+   */
+  photoSrc?: string | null;
 }) {
+  const [photoLoaded, setPhotoLoaded] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const armor = `afer-armor-${uid}`;
   const armorDark = `afer-dark-${uid}`;
@@ -34,6 +45,30 @@ export function AIFitnessRobot({
   const visor = `afer-visor-${uid}`;
 
   const accent = "var(--robot-accent)";
+
+  const photo = state === "idle" && photoSrc && !photoFailed ? photoSrc : null;
+
+  if (photo) {
+    return (
+      <div
+        className={cn("robot-stage relative", `robot-${state}`, className)}
+        data-state={state}
+        aria-hidden
+      >
+        <img
+          src={photo}
+          alt=""
+          onLoad={() => setPhotoLoaded(true)}
+          onError={() => setPhotoFailed(true)}
+          className={cn(
+            "h-full w-full object-contain drop-shadow-[0_0_44px_rgba(163,230,53,0.16)] transition-opacity duration-700",
+            photoLoaded ? "opacity-100" : "opacity-0",
+          )}
+        />
+        {!photoLoaded && <AIFitnessRobot state={state} className="absolute inset-0" />}
+      </div>
+    );
+  }
 
   return (
     <div className={cn("robot-stage", `robot-${state}`, className)} data-state={state} aria-hidden>
