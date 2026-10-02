@@ -44,7 +44,16 @@ export const getMySettings = query({
       .query("userSettings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
-    return existing ?? { ...DEFAULT_SETTINGS, userId, updatedAt: 0, _id: null };
+    if (!existing) return { ...DEFAULT_SETTINGS, userId, updatedAt: 0, _id: null };
+    // Defensive merge: older rows may predate a preference group, and every
+    // field here is optional in the schema. Always return a complete shape so
+    // consumers can read e.g. settings.voice.inputEnabled without crashing.
+    return {
+      ...existing,
+      notifications: { ...DEFAULT_SETTINGS.notifications, ...(existing.notifications ?? {}) },
+      voice: { ...DEFAULT_SETTINGS.voice, ...(existing.voice ?? {}) },
+      privacy: { ...DEFAULT_SETTINGS.privacy, ...(existing.privacy ?? {}) },
+    };
   },
 });
 

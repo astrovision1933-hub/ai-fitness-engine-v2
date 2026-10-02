@@ -64,11 +64,9 @@ export default function Coach() {
   // Voice (Part 4) — Web Speech provider, gated on entitlement + user settings.
   // Never claims to be human: composer labels it SYNTHETIC VOICE.
   const voiceInputEnabled =
-    ent !== undefined && ent !== null && ent.voiceAccess === true &&
-    settings !== undefined && settings !== null && settings.voice.inputEnabled === true;
+    ent?.voiceAccess === true && settings?.voice?.inputEnabled === true;
   const voiceOutEnabled =
-    ent !== undefined && ent !== null && ent.voiceAccess === true &&
-    settings !== undefined && settings !== null && settings.voice.outputEnabled === true;
+    ent?.voiceAccess === true && settings?.voice?.outputEnabled === true;
   const voice = useVoiceCoach({ enabled: voiceInputEnabled || voiceOutEnabled });
   const { startListening, stopListening, speak, transcript, listening, speaking, error: voiceError, sttSupported } = voice;
   const wasPendingRef = useRef(false);
