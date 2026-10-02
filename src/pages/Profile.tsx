@@ -22,6 +22,7 @@ export default function Profile() {
   const memory = useQuery(api.profile.getMemory);
   const personas = useQuery(api.coachPersonas.listPersonas);
   const plan = useQuery(api.workouts.getActivePlan);
+  const physique = useQuery(api.physique.getPhysiqueState);
 
   const updateGoal = useMutation(api.profile.updateGoal);
   const addMeasurement = useMutation(api.profile.addMeasurement);
@@ -174,6 +175,36 @@ export default function Profile() {
               )}
             </div>
           )}
+        </Panel>
+
+        {/* physique tracker */}
+        <Panel
+          title="PHYSIQUE TRACKER"
+          subtitle="optional photos, measurements, fitness stage and transformation timeline"
+          right={
+            <Button size="sm" variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.12em]" onClick={() => navigate("/physique")}>
+              OPEN TRACKER →
+            </Button>
+          }
+        >
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <StatChip label="PHYSIQUE" value={physique?.categoryLabel ?? "not enough info"} tone={physique?.categoryLabel ? "ok" : "ink"} />
+            <StatChip label="FITNESS STAGE" value={physique?.fitnessStage ?? "—"} tone="info" />
+            <StatChip label="CHECK-INS" value={physique?.counts.checkins ?? 0} tone="ink" />
+            <StatChip label="PHOTOS" value={physique?.counts.photos ?? 0} tone="ink" />
+          </div>
+          {physique?.priorityAreas && physique.priorityAreas.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {physique.priorityAreas.map((a) => (
+                <span key={a} className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] text-[#dcff8a]">
+                  {a}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {physique?.lastCheckIn ? `LAST CHECK-IN ${physique.lastCheckIn}` : "NO CHECK-INS YET · photos are private and optional"}
+          </p>
         </Panel>
 
         {/* goal + progress */}

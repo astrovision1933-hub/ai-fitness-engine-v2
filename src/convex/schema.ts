@@ -163,8 +163,46 @@ const schema = defineSchema(
           until: v.number(),
         }),
       ),
+      // Physique tracking — baseline + weekly check-in cadence.
+      baselineCheckinId: v.optional(v.id("physiqueCheckins")),
+      lastPhysiqueCheckIn: v.optional(v.string()),
+      nextPhysiqueCheckInDue: v.optional(v.string()),
+      physiqueCategory: v.optional(v.string()),
+      fitnessStage: v.optional(v.string()),
+      priorityAreas: v.optional(v.array(v.string())),
       updatedAt: v.number(),
     }).index("by_user", ["userId"]),
+
+    // Physique check-ins — private photos + cautious visual assessment.
+    // Photos are stored as small client-downscaled data URLs (same pattern as
+    // progressPhotos) and are only ever returned to their owner. `isBaseline`
+    // marks the first check-in (WEEK 0) used as the comparison reference.
+    physiqueCheckins: defineTable({
+      userId: v.id("users"),
+      isBaseline: v.boolean(),
+      date: v.string(),
+      weekIndex: v.number(),
+      photoDataUrl: v.optional(v.string()),
+      userDescription: v.optional(v.string()),
+      physiqueCategory: v.optional(v.string()),
+      priorityAreas: v.array(v.string()),
+      areasToDevelop: v.array(v.string()),
+      areasToMaintain: v.array(v.string()),
+      fitnessStageIndex: v.number(),
+      fitnessStageName: v.string(),
+      trainingFocus: v.array(v.string()),
+      nutritionFocus: v.array(v.string()),
+      recoveryFocus: v.array(v.string()),
+      userProvided: v.array(v.string()),
+      measured: v.array(v.string()),
+      estimates: v.array(v.string()),
+      observations: v.array(v.string()),
+      recommendations: v.array(v.string()),
+      coachId: v.optional(v.id("coachPersonas")),
+      createdAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_created", ["userId", "createdAt"]),
 
     conversations: defineTable({
       userId: v.id("users"),
@@ -422,6 +460,11 @@ const schema = defineSchema(
       armCm: v.optional(v.number()),
       legCm: v.optional(v.number()),
       shoulderCm: v.optional(v.number()),
+      // Extended physique tracker measurements (all user-provided, optional).
+      neckCm: v.optional(v.number()),
+      abdomenCm: v.optional(v.number()),
+      hipsCm: v.optional(v.number()),
+      calfCm: v.optional(v.number()),
       bodyFatPct: v.optional(v.number()),
       notes: v.optional(v.string()),
       createdAt: v.number(),

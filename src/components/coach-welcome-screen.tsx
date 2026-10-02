@@ -19,6 +19,7 @@ export function CoachWelcomeScreen({
   onAskCoach,
   onStartJourney,
   starting,
+  physique,
 }: {
   userName: string;
   coachName: string;
@@ -26,6 +27,7 @@ export function CoachWelcomeScreen({
   onAskCoach: () => void;
   onStartJourney: () => void;
   starting?: boolean;
+  physique?: { categoryLabel: string; priorityAreas: string[]; stage: string; rationale: string } | null;
 }) {
   const accent = coachAccent(coachName);
   const full = coachFullName(coachName);
@@ -86,6 +88,25 @@ export function CoachWelcomeScreen({
               {coachTitle} {coachName} will guide your training, motivation, progress and fitness journey.
             </p>
           </div>
+
+          {physique && (
+            <div className="mt-7 rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="font-display text-sm font-bold uppercase tracking-[0.12em]">Your Current Physique Profile</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <TerminalBadge tone="ok">{physique.categoryLabel}</TerminalBadge>
+                <TerminalBadge tone="info">STAGE: {physique.stage}</TerminalBadge>
+              </div>
+              {physique.priorityAreas.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Priority areas: <span className="text-foreground">{physique.priorityAreas.join(", ")}</span>
+                </p>
+              )}
+              <p className="mt-1 text-[10px] leading-4 text-muted-foreground">{physique.rationale}</p>
+              <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                No exact body-fat figure is derived from a photo · photo comparisons are approximate
+              </p>
+            </div>
+          )}
 
           {/* profile saved confirmation */}
           <div className="mt-7 rounded-xl border border-primary/25 bg-primary/5 p-4">

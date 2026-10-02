@@ -4,6 +4,7 @@ import { Panel, StatChip, TerminalBadge, AsciiBar, StatusDot, SectionHeader } fr
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
 import { CoachAvatar } from "@/components/coach-avatar";
 import { CoachJourneyCard } from "@/components/coach-journey-card";
+import { WeeklyCheckinCard } from "@/components/weekly-checkin-card";
 import { coachAccent, coachCardGradient } from "@/lib/coach-media";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "convex/react";
@@ -44,6 +45,7 @@ const QUICK_ACTIONS = [
   { label: "MY PROGRESS", to: "/progress" },
   { label: "MY GOAL", to: "/goals" },
   { label: "ASK COACH", to: "/coach" },
+  { label: "PHYSIQUE", to: "/physique" },
   { label: "SUPPLEMENTS", to: "/supplements" },
   { label: "PRODUCTS", to: "/products" },
   { label: "REPORTS", to: "/reports" },
@@ -403,6 +405,9 @@ export default function Dashboard() {
 
         {/* ================= YOUR AI COACH / JOURNEY ================= */}
         <CoachJourneyCard />
+
+        {/* ================= WEEKLY PHYSIQUE CHECK-IN ================= */}
+        <WeeklyCheckinCard />
 
         {/* ================= CHOOSE YOUR AI COACH ================= */}
         <section>

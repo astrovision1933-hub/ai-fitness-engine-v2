@@ -1,11 +1,15 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionHeader, TerminalBadge } from "@/components/terminal";
 import { CoachWelcomeScreen } from "@/components/coach-welcome-screen";
+import { PhysiqueScan } from "@/components/physique-scan";
+import { fileToDownscaledDataUrl } from "@/lib/photo";
+import { PHYSIQUE_CATEGORY_LABELS } from "@/lib/physique";
+import { Camera, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -42,7 +46,7 @@ const DIET_TYPES = [
   { value: "indian", label: "Indian diet" },
 ] as const;
 
-const STEPS = ["BASIC", "GOAL", "EXPERIENCE", "TRAINING", "DIET", "LIFESTYLE", "TARGET"] as const;
+const STEPS = ["BASIC", "GOAL", "EXPERIENCE", "TRAINING", "DIET", "LIFESTYLE", "PHYSIQUE", "TARGET"] as const;
 
 type OnboardingState = {
   name: string;
@@ -176,6 +180,18 @@ export default function Onboarding() {
   // Set after a successful save → drives the coach welcome / saved confirmation screen.
   const [assigned, setAssigned] = useState<{ name: string; coachTitle: string } | null>(null);
   const [starting, setStarting] = useState(false);
+  // Optional physique information (never blocks profile completion).
+  const [physiqueChoice, setPhysiqueChoice] = useState<"" | "photo" | "describe" | "skip">("");
+  const [physiqueDescription, setPhysiqueDescription] = useState("");
+  const [physiquePhoto, setPhysiquePhoto] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [physiqueResult, setPhysiqueResult] = useState<{
+    categoryLabel: string;
+    priorityAreas: string[];
+    stage: string;
+    rationale: string;
+  } | null>(null);
+  const physiqueFileRef = useRef<HTMLInputElement>(null);
 
   const seedPersonas = useMutation(api.coachPersonas.seedPersonasPublic);
   const assignCoach = useMutation(api.coachJourney.assignCoach);
@@ -183,6 +199,7 @@ export default function Onboarding() {
   const generatePlan = useMutation(api.workouts.generatePlan);
   const startJourney = useMutation(api.coachJourney.startJourney);
   const markCoachWelcomeShown = useMutation(api.coachJourney.markCoachWelcomeShown);
+  const savePhysique = useMutation(api.physique.savePhysiqueCheckIn);
 
   const personas = useQuery(api.coachPersonas.listPersonas);
   const [personaId, setPersonaId] = useState<string>("");
@@ -217,6 +234,9 @@ export default function Onboarding() {
       case 5:
         return !!state.dailyActivity && !!state.workType;
       case 6:
+        // Physique information is always optional — never block progress.
+        return true;
+      case 7:
         return state.goalDescription.trim().length > 0 && !!personaId;
       default:
         return false;
@@ -270,6 +290,24 @@ export default function Onboarding() {
       }
       // Generate the first training plan from the profile.
       await generatePlan({});
+      // Optional physique baseline — only saved when the user provided something.
+      if (physiquePhoto || physiqueDescription.trim()) {
+        try {
+          const res = await savePhysique({
+            dataUrl: physiquePhoto ?? undefined,
+            userDescription: physiqueDescription.trim() || undefined,
+          });
+          setPhysiqueResult({
+            categoryLabel:
+              PHYSIQUE_CATEGORY_LABELS[res.assessment.physiqueCategory] ?? res.assessment.physiqueCategory,
+            priorityAreas: res.assessment.priorityAreas,
+            stage: res.assessment.fitnessStageName,
+            rationale: res.assessment.categoryRationale,
+          });
+        } catch {
+          // Non-blocking — physique info can be added later from /physique.
+        }
+      }
       toast.success("Profile saved — assessment generated", {
         description: "Week 1 of your training plan is scheduled.",
       });
@@ -287,6 +325,18 @@ export default function Onboarding() {
   };
 
   const stepValid = canAdvance();
+
+  async function handlePhysiqueFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      const dataUrl = await fileToDownscaledDataUrl(file, 720);
+      setPhysiquePhoto(dataUrl);
+      setPhysiqueChoice("photo");
+      setScanning(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not read that image");
+    }
+  }
 
   async function handleAskCoach() {
     await markCoachWelcomeShown({}).catch(() => undefined);
@@ -314,18 +364,22 @@ export default function Onboarding() {
         onAskCoach={handleAskCoach}
         onStartJourney={handleStartJourney}
         starting={starting}
+        physique={physiqueResult}
       />
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
+      {scanning && (
+        <PhysiqueScan imageSrc={physiquePhoto} onComplete={() => setScanning(false)} onCancel={() => setScanning(false)} />
+      )}
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
           <span className="text-xs font-semibold uppercase tracking-[0.22em]">
             AFE://ONBOARDING
           </span>
-          <TerminalBadge tone="ok">STEP {step + 1}/7</TerminalBadge>
+          <TerminalBadge tone="ok">STEP {step + 1}/8</TerminalBadge>
         </div>
       </header>
 
@@ -736,7 +790,97 @@ export default function Onboarding() {
 
             {step === 6 && (
               <section className="space-y-5">
-                <SectionHeader index="07" title="TARGET" hint="stored as structured data" />
+                <SectionHeader index="07" title="PHYSIQUE INFORMATION" hint="optional — the engine keeps working without it" />
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Want your AI Coach to understand your current physique? You can upload one clear full-body photo,
+                  describe your physique in words, or skip for now. This is always optional.
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {([
+                    { key: "photo" as const, label: "UPLOAD FULL-BODY PHOTO" },
+                    { key: "describe" as const, label: "DESCRIBE MY PHYSIQUE" },
+                    { key: "skip" as const, label: "SKIP FOR NOW" },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setPhysiqueChoice(opt.key)}
+                      className={cn(
+                        "border px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors",
+                        physiqueChoice === opt.key
+                          ? "border-primary bg-primary/10 text-[#dcff8a]"
+                          : "border-border bg-card text-muted-foreground hover:border-muted-foreground/40",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {physiqueChoice === "photo" && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Upload one clear full-body photo from head to feet. Photos stay private to your account.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => physiqueFileRef.current?.click()}
+                        className="rounded-none text-[10px] uppercase tracking-[0.14em]"
+                      >
+                        <Camera className="mr-2 size-4" aria-hidden /> Take / Upload Photo
+                      </Button>
+                    </div>
+                    <input
+                      ref={physiqueFileRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => handlePhysiqueFile(e.target.files?.[0])}
+                    />
+                    {physiquePhoto && (
+                      <img src={physiquePhoto} alt="Your physique" className="max-h-64 rounded-lg border border-border object-contain" />
+                    )}
+                    {physiquePhoto && (
+                      <Button
+                        type="button"
+                        onClick={() => setScanning(true)}
+                        className="rounded-none text-[10px] uppercase tracking-[0.14em]"
+                      >
+                        <ImageIcon className="mr-2 size-4" aria-hidden /> Run Physique Scan
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {physiqueChoice === "describe" && (
+                  <div>
+                    <label className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                      DESCRIBE YOUR PHYSIQUE
+                    </label>
+                    <textarea
+                      value={physiqueDescription}
+                      onChange={(e) => setPhysiqueDescription(e.target.value)}
+                      rows={4}
+                      placeholder={'e.g. I\'m 5\'8", 90 kg. More fat around my abdomen and lower belly. Arms and shoulders are comparatively muscular.'}
+                      className="mt-1 w-full border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/30"
+                    />
+                  </div>
+                )}
+
+                {physiqueChoice === "skip" && (
+                  <p className="text-xs text-muted-foreground">
+                    No problem — you can add a physique photo or description any time from the Physique Tracker.
+                  </p>
+                )}
+              </section>
+            )}
+
+            {step === 7 && (
+              <section className="space-y-5">
+                <SectionHeader index="08" title="TARGET" hint="stored as structured data" />
                 <div>
                   <label className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                     WHAT EXACTLY DO YOU WANT TO ACHIEVE?
@@ -806,7 +950,7 @@ export default function Onboarding() {
             >
               ← BACK
             </Button>
-            {step < 6 ? (
+            {step < 7 ? (
               <Button
                 className="rounded-none text-[11px] uppercase tracking-[0.14em]"
                 onClick={() => setStep((s) => s + 1)}

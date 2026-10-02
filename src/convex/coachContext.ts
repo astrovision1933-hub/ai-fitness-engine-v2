@@ -106,6 +106,20 @@ export const getContextBundle = internalQuery({
             : ""
         }`,
       );
+    const latestPhysique = await ctx.db
+      .query("physiqueCheckins")
+      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .first();
+    if (journey?.physiqueCategory || latestPhysique) {
+      summaryLines.push(
+        `PHYSIQUE: ${journey?.physiqueCategory ?? latestPhysique?.physiqueCategory ?? "unknown"} · stage ${journey?.fitnessStage ?? latestPhysique?.fitnessStageName ?? "unknown"}${
+          journey?.priorityAreas?.length ? ` · priority areas: ${journey.priorityAreas.join(", ")}` : ""
+        }${latestPhysique?.userDescription ? ` · user description: "${latestPhysique.userDescription.slice(0, 200)}"` : ""}${
+          latestPhysique ? ` · last physique check-in ${latestPhysique.date}` : ""
+        }`,
+      );
+    }
     if (activePlan)
       summaryLines.push(`ACTIVE PLAN: ${activePlan.name} (${activePlan.weeks}w, ${activePlan.daysPerWeek}d/wk)`);
     if (recentSessions.length)
