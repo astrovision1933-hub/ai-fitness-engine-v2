@@ -9,28 +9,42 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 
-// Lazy load route components for better code splitting
-const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
-const Coach = lazy(() => import("./pages/Coach.tsx"));
-const Journey = lazy(() => import("./pages/Journey.tsx"));
-const Physique = lazy(() => import("./pages/Physique.tsx"));
-const Workout = lazy(() => import("./pages/Workout.tsx"));
-const Nutrition = lazy(() => import("./pages/Nutrition.tsx"));
-const Progress = lazy(() => import("./pages/Progress.tsx"));
-const CheckIn = lazy(() => import("./pages/CheckIn.tsx"));
-const Goals = lazy(() => import("./pages/Goals.tsx"));
-const Bodybuilding = lazy(() => import("./pages/Bodybuilding.tsx"));
-const Profile = lazy(() => import("./pages/Profile.tsx"));
-const Supplements = lazy(() => import("./pages/Supplements.tsx"));
-const Products = lazy(() => import("./pages/Products.tsx"));
-const Reports = lazy(() => import("./pages/Reports.tsx"));
-const Settings = lazy(() => import("./pages/Settings.tsx"));
-const Subscription = lazy(() => import("./pages/Subscription.tsx"));
-const Admin = lazy(() => import("./pages/Admin.tsx"));
-const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+// Lazy load route components for better code splitting.
+// lazyPage adds one automatic retry: on a flaky mobile connection, or right
+// after a dev-server rebuild, the first fetch of a route chunk can reject with
+// "Failed to fetch dynamically imported module". A short retry recovers it
+// instead of dropping the user on the runtime-error screen.
+function lazyPage<P extends object>(loader: () => Promise<{ default: React.ComponentType<P> }>) {
+  return lazy(() =>
+    loader().catch(
+      () =>
+        new Promise<{ default: React.ComponentType<P> }>((resolve, reject) => {
+          setTimeout(() => loader().then(resolve, reject), 600);
+        }),
+    ),
+  );
+}
+const Landing = lazyPage(() => import("./pages/Landing.tsx"));
+const AuthPage = lazyPage(() => import("./pages/Auth.tsx"));
+const Dashboard = lazyPage(() => import("./pages/Dashboard.tsx"));
+const Onboarding = lazyPage(() => import("./pages/Onboarding.tsx"));
+const Coach = lazyPage(() => import("./pages/Coach.tsx"));
+const Journey = lazyPage(() => import("./pages/Journey.tsx"));
+const Physique = lazyPage(() => import("./pages/Physique.tsx"));
+const Workout = lazyPage(() => import("./pages/Workout.tsx"));
+const Nutrition = lazyPage(() => import("./pages/Nutrition.tsx"));
+const Progress = lazyPage(() => import("./pages/Progress.tsx"));
+const CheckIn = lazyPage(() => import("./pages/CheckIn.tsx"));
+const Goals = lazyPage(() => import("./pages/Goals.tsx"));
+const Bodybuilding = lazyPage(() => import("./pages/Bodybuilding.tsx"));
+const Profile = lazyPage(() => import("./pages/Profile.tsx"));
+const Supplements = lazyPage(() => import("./pages/Supplements.tsx"));
+const Products = lazyPage(() => import("./pages/Products.tsx"));
+const Reports = lazyPage(() => import("./pages/Reports.tsx"));
+const Settings = lazyPage(() => import("./pages/Settings.tsx"));
+const Subscription = lazyPage(() => import("./pages/Subscription.tsx"));
+const Admin = lazyPage(() => import("./pages/Admin.tsx"));
+const NotFound = lazyPage(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -89,6 +103,12 @@ class RootErrorBoundary extends React.Component<
                 {this.state.stack}
               </pre>
             )}
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 border border-primary/40 bg-primary/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#dcff8a] transition-colors hover:bg-primary/20"
+            >
+              ↻ Reload app
+            </button>
           </div>
         </div>
       );
