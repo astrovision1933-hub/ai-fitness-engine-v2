@@ -1,13 +1,14 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { AppShell } from "@/components/AppShell";
-import { Panel, TerminalBadge, AsciiBar } from "@/components/terminal";
+import { Panel, TerminalBadge, AsciiBar, StatusDot } from "@/components/terminal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useVoiceCoach } from "@/hooks/use-voice-coach";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 
 const WARMUP = [
@@ -43,6 +44,27 @@ export default function Workout() {
   const [localLogs, setLocalLogs] = useState<
     Record<string, { weightKg?: number; reps?: number; completed: boolean }>
   >({});
+  const [coachFlash, setCoachFlash] = useState<string | null>(null);
+  const [timerKey, setTimerKey] = useState<string>("");
+  const timerRef = useRef<number | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+
+  function startRestTimer(exerciseId: string) {
+    setTimerKey(exerciseId);
+  }
+
+  // Voice is available but never claims to be human.
+  const voice = useVoiceCoach({ enabled: true });
+  const { speak, sttSupported } = voice;
+
+  async function handleInlineAsk(question: string) {
+    if (!question.trim()) return;
+    try {
+      await navigate(`/coach?q=${encodeURIComponent(question)}`);
+    } catch {
+      toast.error("Could not open the coach chat.");
+    }
+  }
 
   const detail = useQuery(
     api.workouts.getSessionDetail,
@@ -142,6 +164,27 @@ export default function Workout() {
   const completedSessions = sessions?.filter((s) => s.status === "completed") ?? [];
   const isDetailActive = detail?.session.status === "in_progress";
 
+  // Coach onboarding flash shown once per session open.
+  useEffect(() => {
+    if (isDetailActive && !timerKey) {
+      setCoachFlash("ASK YOUR COACH — type anything about this workout, form, fatigue or your plan.");
+      const t = window.setTimeout(() => setCoachFlash(null), 5500);
+      flashTimerRef.current = t;
+    }
+    return () => window.clearTimeout(flashTimerRef.current ?? undefined);
+  }, [isDetailActive]);
+
+  // Prefill weight from the stored default (goal-aware engine default) if the user
+  // has not yet entered anything for this exercise.
+  function defaultWeightFor(exercise: Doc<"workoutExercises">): number | undefined {
+    if (exercise.defaultWeightKg != null) return exercise.defaultWeightKg;
+    if (exercise.muscleGroup === "legs" || exercise.muscleGroup === "back") return 15;
+    if (exercise.muscleGroup === "chest" || exercise.muscleGroup === "shoulders") return 10;
+    return undefined;
+  }
+
+  // Current session's logged weight/reps for an exercise+set, preferring local
+  // edits over what was last saved.
   function logFor(exerciseOrder: number, setIndex: number) {
     const server = detail?.logs.find((l) => l.exerciseOrder === exerciseOrder && l.setIndex === setIndex);
     const local = localLogs[`${exerciseOrder}:${setIndex}`];
@@ -151,6 +194,15 @@ export default function Workout() {
       completed: local?.completed ?? server?.completed ?? false,
     };
   }
+
+  // Last logged weight for the same exercise (strict superset: only uses the
+  // most recent completed session in the same plan, read from server logs).
+  const lastWeightFor = (exerciseOrder: number, setIndex: number): number | undefined => {
+    const completedThisPlan = completedSessions.filter((s) => s.planId === detail?.session?.planId);
+    const mostRecent = completedThisPlan[completedThisPlan.length - 1];
+    if (!mostRecent || !detail?.logs) return undefined;
+    return detail.logs.find((l) => l.exerciseOrder === exerciseOrder && l.setIndex === setIndex)?.weightKg;
+  };
 
   return (
     <AppShell>
@@ -233,6 +285,20 @@ export default function Workout() {
               )
             }
           >
+            {coachFlash && (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-terminal-amber/40 bg-[#fdf3e7]/70 px-3 py-2">
+                <div className="mt-0.5 shrink-0">
+                  <StatusDot tone="warn" pulse />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-status-warn">Ask Your Coach</p>
+                  <p className="mt-0.5 text-[11px] leading-5 text-foreground/90">{coachFlash}</p>
+                  <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+                    Open the chat anytime — ask about form, fatigue, plan, nutrition or supplements.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* warm-up */}
             <div className="mb-4 border border-border bg-secondary/40 p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-status-warn">WARM-UP</p>
@@ -247,11 +313,20 @@ export default function Workout() {
             <div className="space-y-3">
               {detail.exercises.map((ex) => {
                 const doneSets = detail.logs.filter((l) => l.exerciseOrder === ex.order && l.completed).length;
+                const isSuperset = typeof ex.supersetWith === "string" && ex.supersetWith.length > 0;
+                const lastWeight = lastWeightFor(ex.order, 0);
+                const prefillWeight = defaultWeightFor(ex);
                 return (
                   <div key={ex._id} className="border border-border bg-card">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
                       <div>
                         <span className="text-sm font-semibold">{ex.name}</span>
+                        {isSuperset && (
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-terminal-green/40 bg-[#eef3ea]/60 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-status-ok">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-status-ok"/>
+                            SUPERSET · {ex.supersetWith}
+                          </span>
+                        )}
                         <span className="ml-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                           {ex.muscleGroup} · {ex.sets} × {ex.reps} · rest {ex.restSeconds}s
                         </span>
@@ -268,6 +343,11 @@ export default function Workout() {
                         ALTERNATIVES: {ex.alternatives.join(", ")}
                       </p>
                     )}
+                    {lastWeight != null && prefillWeight != null && (
+                      <p className="px-3 pt-1 text-[10px] uppercase tracking-[0.14em] text-status-info">
+                        LAST TIME: {lastWeight}kg · this session start: {prefillWeight}kg
+                      </p>
+                    )}
 
                     {/* set grid */}
                     <div className="space-y-1.5 p-3">
@@ -277,7 +357,7 @@ export default function Workout() {
                         return (
                           <div key={setIndex} className="flex flex-wrap items-center gap-2 text-xs">
                             <span className={cn("w-14 shrink-0 uppercase tracking-[0.1em]", entry.completed ? "text-status-ok" : "text-muted-foreground")}>
-                              SET {setIndex + 1}
+                              {timerKey === ex._id && entry.completed ? `REST ${(ex.restSeconds ?? 90)}S` : `SET ${setIndex + 1}`}
                             </span>
                             <Input
                               type="number"
@@ -285,7 +365,7 @@ export default function Workout() {
                               min={0}
                               placeholder="kg"
                               disabled={!isDetailActive}
-                              value={entry.weightKg ?? ""}
+                              value={entry.weightKg ?? prefillWeight ?? ""}
                               onChange={(e) =>
                                 mergeLog(key, { weightKg: e.target.value === "" ? undefined : Number(e.target.value) })
                               }
@@ -311,10 +391,22 @@ export default function Workout() {
                                 const next = { ...entry, completed: !entry.completed };
                                 mergeLog(key, next);
                                 void handleSaveSet(ex.order, setIndex, next);
+                                if (next.completed && !entry.completed) startRestTimer(ex._id);
                               }}
                             >
                               {entry.completed ? "DONE ✓" : "COMPLETE"}
                             </Button>
+                            {isSuperset && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={!isDetailActive}
+                                className="h-8 rounded-none text-[9px] uppercase tracking-[0.12em] text-status-info"
+                                onClick={() => handleInlineAsk(`Explain how to do ${ex.name} and ${ex.supersetWith} as a superset, including form cues and rest timing.`)}
+                              >
+                                ASK COACH
+                              </Button>
+                            )}
                           </div>
                         );
                       })}

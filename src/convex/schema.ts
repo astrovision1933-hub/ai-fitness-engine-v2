@@ -268,6 +268,8 @@ const schema = defineSchema(
       muscleGroup: v.string(),
       techniqueNotes: v.optional(v.string()),
       alternatives: v.array(v.string()),
+      defaultWeightKg: v.optional(v.number()),
+      supersetWith: v.optional(v.string()),
       phase: v.string(), // warmup | main | cooldown
     }).index("by_session", ["sessionId"]),
 

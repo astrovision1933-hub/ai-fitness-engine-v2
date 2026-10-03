@@ -39,7 +39,7 @@ const EXERCISES: Record<string, ExerciseTemplate[]> = {
 type SessionTemplate = {
   name: string;
   focus: string;
-  exercises: Array<{ name: string; muscleGroup: string; sets: number; reps: string; rest: number; technique?: string; alternatives: string[] }>;
+  exercises: Array<{ name: string; muscleGroup: string; sets: number; reps: string; rest: number; technique?: string; alternatives: string[]; defaultWeightKg?: number; supersetWith?: string }>;
 };
 
 const SESSION_TEMPLATES: SessionTemplate[] = [
@@ -47,9 +47,9 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
     name: "Full Body A",
     focus: "Squat pattern + push + pull",
     exercises: [
-      { name: "Goblet squats", muscleGroup: "quads", sets: 3, reps: "8-10", rest: 90, technique: "Chest up, knees track over toes, controlled 3s descent.", alternatives: ["Bodyweight squats", "Box squats"] },
-      { name: "Push-ups", muscleGroup: "chest", sets: 3, reps: "8-15", rest: 75, technique: "Body in one line; full lockout at the top.", alternatives: ["Incline push-ups", "Bench press"] },
-      { name: "One-arm rows", muscleGroup: "back", sets: 3, reps: "10-12", rest: 75, technique: "Pull to the hip, squeeze the shoulder blade.", alternatives: ["Band rows", "Inverted rows"] },
+      { name: "Goblet squats", muscleGroup: "quads", sets: 3, reps: "8-10", rest: 90, technique: "Chest up, knees track over toes, controlled 3s descent.", alternatives: ["Bodyweight squats", "Box squats"], defaultWeightKg: 12 },
+      { name: "Push-ups", muscleGroup: "chest", sets: 3, reps: "8-15", rest: 75, technique: "Body in one line; full lockout at the top.", alternatives: ["Incline push-ups", "Bench press"], supersetWith: "One-arm rows" },
+      { name: "One-arm rows", muscleGroup: "back", sets: 3, reps: "10-12", rest: 75, technique: "Pull to the hip, squeeze the shoulder blade.", alternatives: ["Band rows", "Inverted rows"], supersetWith: "Push-ups" },
       { name: "Plank", muscleGroup: "core", sets: 3, reps: "30-45s", rest: 45, technique: "Ribs down, glutes tight, breathe.", alternatives: ["Dead bug"] },
     ],
   },
@@ -57,9 +57,9 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
     name: "Full Body B",
     focus: "Hinge + vertical push + arms",
     exercises: [
-      { name: "Romanian deadlift", muscleGroup: "hamstrings", sets: 3, reps: "8-10", rest: 90, technique: "Hips back, flat back, feel hamstring stretch.", alternatives: ["Hip hinge with band"] },
-      { name: "Overhead press", muscleGroup: "shoulders", sets: 3, reps: "8-10", rest: 90, technique: "Ribs down, press to lockout, no back arch.", alternatives: ["Pike push-ups"] },
-      { name: "Lat pulldown / Pull-ups", muscleGroup: "back", sets: 3, reps: "8-12", rest: 90, technique: "Chest tall, drive elbows down.", alternatives: ["Band pulldowns"] },
+      { name: "Romanian deadlift", muscleGroup: "hamstrings", sets: 3, reps: "8-10", rest: 90, technique: "Hips back, flat back, feel hamstring stretch.", alternatives: ["Hip hinge with band"], defaultWeightKg: 20 },
+      { name: "Overhead press", muscleGroup: "shoulders", sets: 3, reps: "8-10", rest: 90, technique: "Ribs down, press to lockout, no back arch.", alternatives: ["Pike push-ups"], supersetWith: "Lat pulldown / Pull-ups" },
+      { name: "Lat pulldown / Pull-ups", muscleGroup: "back", sets: 3, reps: "8-12", rest: 90, technique: "Chest tall, drive elbows down.", alternatives: ["Band pulldowns"], supersetWith: "Overhead press" },
       { name: "Farmer carries", muscleGroup: "core", sets: 3, reps: "30-40m", rest: 60, technique: "Tall posture, don't lean.", alternatives: ["Suitcase carries"] },
     ],
   },
@@ -148,6 +148,8 @@ export const generatePlan = mutation({
           muscleGroup: ex.muscleGroup,
           techniqueNotes: ex.technique ?? undefined,
           alternatives: ex.alternatives,
+          defaultWeightKg: typeof ex.defaultWeightKg === "number" ? ex.defaultWeightKg : undefined,
+          supersetWith: ex.supersetWith ?? undefined,
           phase: "main",
         });
       }
