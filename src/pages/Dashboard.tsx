@@ -173,7 +173,8 @@ export default function Dashboard() {
   const notifications = useQuery(api.profile.getNotifications);
   const memory = useQuery(api.profile.getMemory);
   const latestConversation = useQuery(api.coachChat.getLatestConversation);
-  const personas = useQuery(api.coachPersonas.listPersonas);
+  const personasData = useQuery(api.coachPersonas.listPersonasForMe);
+  const personas = personasData?.personas;
 
   const seedPersonas = useMutation(api.coachPersonas.seedPersonasPublic);
   const ensureConversation = useMutation(api.coachChat.ensureConversation);
@@ -202,6 +203,14 @@ export default function Dashboard() {
   }, [loading, profile, navigate]);
 
   async function selectCoach(personaId: Id<"coachPersonas">) {
+    const lockedPersona = personas?.find((p) => p._id === personaId && p.locked);
+    if (lockedPersona) {
+      toast.message(`${lockedPersona.name} is locked on your plan`, {
+        description: `Your ${personasData?.planName ?? "current"} plan unlocks ${personasData?.botLimit ?? 2} bots. Upgrade for more coaches.`,
+      });
+      navigate("/subscription");
+      return;
+    }
     try {
       await ensureConversation({ personaId });
       const res = await assignCoach({ personaId });
@@ -419,7 +428,11 @@ export default function Dashboard() {
               </h2>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">9 Expert Coaches Online</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                {personasData
+                  ? `${personasData.personas.filter((p) => !p.locked).length}/${personasData.personas.length} Coaches Unlocked · ${personasData.planName}`
+                  : "Expert Coaches Online"}
+              </p>
               <Link
                 to="/coach"
                 className="glass-soft lift rounded-lg px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/90 hover:border-primary/30 hover:text-[#dcff8a]"
@@ -445,31 +458,52 @@ export default function Dashboard() {
                       style={
                         {
                           background: coachCardGradient(accent),
-                          borderColor: `${accent}55`,
+                          borderColor: p.locked ? undefined : `${accent}55`,
                           "--coach-glow": `${accent}44`,
                         } as React.CSSProperties
                       }
-                      className="lift group relative overflow-hidden rounded-xl border bg-card/70 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_26px_var(--coach-glow)]"
+                      className={cn(
+                        "lift group relative overflow-hidden rounded-xl border bg-card/70 backdrop-blur-md transition-all duration-300",
+                        p.locked ? "opacity-60" : "hover:-translate-y-1 hover:shadow-[0_0_26px_var(--coach-glow)]",
+                      )}
                     >
                       <div className="flex flex-col items-center px-3 pb-3 pt-5 text-center">
-                        <CoachAvatar
-                          name={p.name}
-                          accent={accent}
-                          className="mb-3 transition-all duration-300 group-hover:shadow-[0_0_22px_var(--coach-glow)]"
-                        />
+                        <div className="relative">
+                          <CoachAvatar
+                            name={p.name}
+                            accent={accent}
+                            className="mb-3 transition-all duration-300 group-hover:shadow-[0_0_22px_var(--coach-glow)]"
+                          />
+                          {p.locked && (
+                            <span className="absolute bottom-2 right-0 flex size-5 items-center justify-center rounded-full border border-border bg-background text-[9px]">
+                              🔒
+                            </span>
+                          )}
+                        </div>
                         <p className="font-display text-sm font-bold uppercase tracking-[0.08em]">{p.name}</p>
                         <p className="mt-1 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                           <SpecialtyIcon className="size-3" style={{ color: accent }} aria-hidden />
                           <span className="line-clamp-1">{meta.specialty}</span>
                         </p>
-                        <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-status-ok">
-                          <StatusDot pulse /> Online
-                        </p>
+                        {p.locked ? (
+                          <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-status-warn">
+                            🔒 Locked — upgrade
+                          </p>
+                        ) : (
+                          <p className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-status-ok">
+                            <StatusDot pulse /> Online
+                          </p>
+                        )}
                         <button
                           onClick={() => selectCoach(p._id)}
-                          className="mt-3 w-full rounded-lg border border-primary/30 bg-primary/10 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#dcff8a] transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_16px_var(--neon-glow)] focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                          className={cn(
+                            "mt-3 w-full rounded-lg py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] transition-all duration-200 focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100",
+                            p.locked
+                              ? "border border-border bg-secondary/60 text-muted-foreground hover:border-primary/30"
+                              : "border border-primary/30 bg-primary/10 text-[#dcff8a] hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_16px_var(--neon-glow)]",
+                          )}
                         >
-                          Select
+                          {p.locked ? "Unlock 🔒" : "Select"}
                         </button>
                       </div>
                     </div>
@@ -536,15 +570,28 @@ export default function Dashboard() {
 
         {/* ================= OPERATIONS ================= */}
         <div className="grid gap-4 lg:grid-cols-3">
-          {/* today's workout */}
-          <Panel title="TODAY'S WORKOUT" className="lg:col-span-2">
+          {/* today's workout — the highlighted NEXT MOVE for paid users */}
+          <Panel
+            title="YOUR NEXT MOVE"
+            subtitle="follow this step — engine rotates automatically"
+            className={cn(
+              "lg:col-span-2",
+              nextSession && "border-primary/40 shadow-[0_0_28px_rgba(163,230,53,0.12)] animate-pulse",
+            )}
+          >
             {nextSession ? (
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <div className="font-display text-sm font-semibold">{nextSession.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-gradient-to-r from-[#a3e635] to-[#65d413] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-[#0a1205]">
+                      ↯ START HERE
+                    </span>
+                    <div className="font-display text-sm font-semibold">{nextSession.name}</div>
+                  </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {nextSession.status === "in_progress" ? "IN PROGRESS" : "SCHEDULED"} ·{" "}
                     {profile?.training ? `${profile.training.sessionMinutes} min target` : "time n/a"}
+                    {plan ? ` · rotation: ${Math.min(plan.daysPerWeek, 6)} days/week — A/B/C cycle repeat hota hai` : ""}
                   </div>
                   <div className="mt-2">
                     <AsciiBar value={nextSession.status === "in_progress" ? 0.4 : 0} />

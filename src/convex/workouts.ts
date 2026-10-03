@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 
 /* ------------------------------------------------------------------ */
 /* Exercise library (foundation for the Part 2 engine)                 */
@@ -63,6 +64,46 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
       { name: "Farmer carries", muscleGroup: "core", sets: 3, reps: "30-40m", rest: 60, technique: "Tall posture, don't lean.", alternatives: ["Suitcase carries"] },
     ],
   },
+  {
+    name: "Full Body C",
+    focus: "Lunge pattern + carry + arms",
+    exercises: [
+      { name: "Split squats", muscleGroup: "quads", sets: 3, reps: "8-10 / leg", rest: 90, technique: "Torso tall, back knee toward floor, push through front heel.", alternatives: ["Reverse lunges", "Step-ups"], defaultWeightKg: 10 },
+      { name: "Dumbbell bench press", muscleGroup: "chest", sets: 3, reps: "8-12", rest: 90, technique: "Elbows ~45°, lower under control, full lockout.", alternatives: ["Floor press", "Push-ups"], defaultWeightKg: 10 },
+      { name: "Seated/band row", muscleGroup: "back", sets: 3, reps: "10-12", rest: 75, technique: "Pull to the ribs, squeeze 1s, no shrug.", alternatives: ["Band rows"], defaultWeightKg: 20 },
+      { name: "Hanging knee raises / dead bug", muscleGroup: "core", sets: 3, reps: "10-12", rest: 60, technique: "Low back stays down; move slow.", alternatives: ["Dead bug", "Reverse crunch"] },
+    ],
+  },
+  {
+    name: "Push Day",
+    focus: "Chest + shoulders + triceps",
+    exercises: [
+      { name: "Bench press / push-ups", muscleGroup: "chest", sets: 4, reps: "6-10", rest: 120, technique: "Shoulder blades pinched; bar to mid-chest.", alternatives: ["Dumbbell bench press", "Push-ups"], defaultWeightKg: 20 },
+      { name: "Overhead press", muscleGroup: "shoulders", sets: 3, reps: "8-10", rest: 90, technique: "Ribs down, press to lockout, no back arch.", alternatives: ["Pike push-ups"], defaultWeightKg: 15 },
+      { name: "Incline push-ups / flies", muscleGroup: "chest", sets: 3, reps: "10-15", rest: 60, technique: "Stretch at the bottom, squeeze at the top.", alternatives: ["Cable flies"] },
+      { name: "Plank", muscleGroup: "core", sets: 3, reps: "30-45s", rest: 45, technique: "Ribs down, glutes tight, breathe.", alternatives: ["Dead bug"] },
+    ],
+  },
+  {
+    name: "Pull Day",
+    focus: "Back + biceps",
+    exercises: [
+      { name: "Lat pulldown / Pull-ups", muscleGroup: "back", sets: 4, reps: "6-10", rest: 120, technique: "Chest tall, drive elbows down to hips.", alternatives: ["Band pulldowns"], defaultWeightKg: 25 },
+      { name: "Barbell/dumbbell rows", muscleGroup: "back", sets: 3, reps: "8-10", rest: 90, technique: "Hinge to 45°, pull to the hip, no momentum.", alternatives: ["Band rows", "Inverted rows"], defaultWeightKg: 20 },
+      { name: "Face pulls / band pull-aparts", muscleGroup: "shoulders", sets: 3, reps: "12-15", rest: 60, technique: "Pull to the eyes, squeeze rear delts.", alternatives: ["Band pull-aparts"] },
+      { name: "Farmer carries", muscleGroup: "core", sets: 3, reps: "30-40m", rest: 60, technique: "Tall posture, don't lean.", alternatives: ["Suitcase carries"] },
+    ],
+  },
+  {
+    name: "Legs Day",
+    focus: "Quads + hamstrings + calves",
+    exercises: [
+      { name: "Squats (barbell/goblet)", muscleGroup: "quads", sets: 4, reps: "6-10", rest: 120, technique: "Chest up, knees track over toes, controlled descent.", alternatives: ["Goblet squats", "Box squats"], defaultWeightKg: 25 },
+      { name: "Romanian deadlift", muscleGroup: "hamstrings", sets: 3, reps: "8-10", rest: 90, technique: "Hips back, flat back, feel hamstring stretch.", alternatives: ["Hip hinge with band"], defaultWeightKg: 25 },
+      { name: "Split squats / lunges", muscleGroup: "quads", sets: 3, reps: "10-12 / leg", rest: 75, technique: "Torso tall, back knee toward floor.", alternatives: ["Reverse lunges", "Step-ups"], defaultWeightKg: 10 },
+      { name: "Calf raises", muscleGroup: "calves", sets: 3, reps: "12-15", rest: 45, technique: "Full stretch at the bottom, 1s squeeze at the top.", alternatives: [] },
+    ],
+  },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -73,10 +114,16 @@ const SESSION_TEMPLATES: SessionTemplate[] = [
 /* WorkoutEngine — deterministic generation from profile data          */
 /* ------------------------------------------------------------------ */
 
+// 2 days → A + B · 3 days → A/B/C rotation · 4 days → A/B/C/Push · 5+ → all six.
 function pickTemplates(daysPerWeek: number): SessionTemplate[] {
-  if (daysPerWeek <= 2) return [SESSION_TEMPLATES[0], SESSION_TEMPLATES[1]];
-  if (daysPerWeek === 3) return SESSION_TEMPLATES.slice(0, 3);
-  return SESSION_TEMPLATES;
+  const n = Math.max(2, Math.min(SESSION_TEMPLATES.length, daysPerWeek));
+  return SESSION_TEMPLATES.slice(0, n);
+}
+
+// Human-readable rotation string shown in the plan header.
+function rotationLabel(daysPerWeek: number): string {
+  const t = pickTemplates(daysPerWeek);
+  return t.map((x) => x.name).join(" → ");
 }
 
 export const generatePlan = mutation({
@@ -102,6 +149,7 @@ export const generatePlan = mutation({
 
     const templates = pickTemplates(daysPerWeek);
     const name = `${goal.replace(/_/g, " ")} — ${daysPerWeek}-day plan`;
+    const rotation = rotationLabel(daysPerWeek);
 
     // Archive previous active plans (single active plan at a time).
     const previous = await ctx.db
@@ -121,7 +169,7 @@ export const generatePlan = mutation({
       source: "engine",
       notes: `Auto-generated from profile: ${experience} level, ${location} training.${
         homeOnly ? " Home-equipment options included." : ""
-      }`,
+      } Rotate: ${rotation}.`,
       isActive: true,
       createdAt: Date.now(),
     });
@@ -164,10 +212,10 @@ export const generatePlan = mutation({
       userId,
       type: "plan",
       title: "New training plan ready",
-      body: `${name} — week 1 sessions are scheduled.`,
+      body: `${name} — week 1 sessions are scheduled. Rotate: ${rotation}.`,
     });
 
-    return { planId, name };
+    return { planId, name, rotation };
   },
 });
 
@@ -194,6 +242,137 @@ export const getPlanSessions = query({
       .query("workoutSessions")
       .withIndex("by_plan", (q) => q.eq("planId", args.planId))
       .collect();
+  },
+});
+
+/** The A→B→C… rotation names for the active plan, so the UI can explain it. */
+export const getPlanRotation = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const plan = await ctx.db
+      .query("workoutPlans")
+      .withIndex("by_user_active", (q) => q.eq("userId", userId).eq("isActive", true))
+      .first();
+    if (!plan) return null;
+    const names = pickTemplates(plan.daysPerWeek).map((t) => t.name);
+    return { planId: plan._id, daysPerWeek: plan.daysPerWeek, names };
+  },
+});
+
+/**
+ * Schedule the next week: clones each rotation template as new scheduled
+ * sessions (week number derived from completed sessions of this plan). Called
+ * after a session is finished, so the customer always sees upcoming days.
+ */
+export const scheduleNextWeek = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const plan = await ctx.db
+      .query("workoutPlans")
+      .withIndex("by_user_active", (q) => q.eq("userId", userId).eq("isActive", true))
+      .first();
+    if (!plan) throw new Error("No active plan");
+
+    const planSessions = await ctx.db
+      .query("workoutSessions")
+      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+      .collect();
+    const completedCount = planSessions.filter((s) => s.status === "completed").length;
+    const weekNumber = Math.floor(completedCount / plan.daysPerWeek) + 2; // week 1 pre-created
+
+    // Idempotent-ish: don't schedule week N twice — allow up to 2 extra weeks.
+    const scheduledCount = planSessions.filter((s) => s.status === "scheduled").length;
+    if (scheduledCount >= plan.daysPerWeek * 2) {
+      return { ok: false, message: "Upcoming sessions are already scheduled." };
+    }
+
+    const templates = pickTemplates(plan.daysPerWeek);
+    let created = 0;
+    for (const template of templates) {
+      const sessionId = await ctx.db.insert("workoutSessions", {
+        userId,
+        planId: plan._id,
+        name: template.name,
+        dayIndex: created,
+        status: "scheduled",
+      });
+      for (let j = 0; j < template.exercises.length; j++) {
+        const ex = template.exercises[j];
+        await ctx.db.insert("workoutExercises", {
+          sessionId,
+          name: ex.name,
+          sets: ex.sets,
+          reps: ex.reps,
+          restSeconds: ex.rest,
+          order: j,
+          muscleGroup: ex.muscleGroup,
+          techniqueNotes: ex.technique ?? undefined,
+          alternatives: ex.alternatives,
+          defaultWeightKg: typeof ex.defaultWeightKg === "number" ? ex.defaultWeightKg : undefined,
+          supersetWith: ex.supersetWith ?? undefined,
+          phase: "main",
+        });
+      }
+      created++;
+    }
+    const label = `Week ${weekNumber} scheduled`;
+    await ctx.runMutation(internal.services.memory.createNotification, {
+      userId,
+      type: "plan",
+      title: label,
+      body: `Next rotation added: ${rotationLabel(plan.daysPerWeek)}.`,
+    });
+    return { ok: true, created, label };
+  },
+});
+
+/**
+ * Previous-completed-session exercise logs for the same plan — used for the
+ * "LAST TIME" progressive-overload cue in the session view.
+ */
+export const getLastSessionLogs = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const plan = await ctx.db
+      .query("workoutPlans")
+      .withIndex("by_user_active", (q) => q.eq("userId", userId).eq("isActive", true))
+      .first();
+    if (!plan) return null;
+    const planSessions = await ctx.db
+      .query("workoutSessions")
+      .withIndex("by_plan", (q) => q.eq("planId", plan._id))
+      .collect();
+    const completed = planSessions
+      .filter((s) => s.status === "completed" && s.completedAt)
+      .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+    const prev = completed[0];
+    if (!prev) return { sessionId: null, exercises: [], logs: [] };
+    const [logs, prevExercises] = await Promise.all([
+      ctx.db
+        .query("exerciseLogs")
+        .withIndex("by_session", (q) => q.eq("sessionId", prev._id))
+        .collect(),
+      ctx.db
+        .query("workoutExercises")
+        .withIndex("by_session", (q) => q.eq("sessionId", prev._id))
+        .collect(),
+    ]);
+    return {
+      sessionId: prev._id as Id<"workoutSessions"> | null,
+      exercises: prevExercises.map((e) => ({ name: e.name, order: e.order })),
+      logs: logs.map((l) => ({
+        exerciseOrder: l.exerciseOrder,
+        setIndex: l.setIndex,
+        weightKg: l.weightKg,
+        reps: l.reps,
+      })),
+    };
   },
 });
 

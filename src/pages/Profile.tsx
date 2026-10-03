@@ -110,7 +110,14 @@ export default function Profile() {
         { description: "Your workout, nutrition and progress history is preserved." },
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update coach");
+      const msg = err instanceof Error ? err.message : "Failed to update coach";
+      // Locked-bot attempt: route to plans instead of a dead-end error.
+      if (msg.includes("locked")) {
+        toast.message("Coach locked on your plan", { description: msg });
+        window.location.assign("/subscription");
+        return;
+      }
+      toast.error(msg);
     }
   }
 

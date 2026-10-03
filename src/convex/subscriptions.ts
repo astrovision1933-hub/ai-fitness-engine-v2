@@ -10,12 +10,19 @@ type Plan = Doc<"subscriptionPlans">;
 /* Plans (admin-configurable; seeded defaults, idempotent)              */
 /* ------------------------------------------------------------------ */
 
+// AI COACH BOT TIERS — bots are divided by plan:
+//   ₹499  Premium    → 2 bots (ARJUN + VEER)
+//   ₹999  Pro Coach  → 3 bots (AARAV unlocks)
+//   ₹1499 Elite Pro  → ALL bots incl. PRO CATEGORY (KABIR, RHEA, RUDRA, ATHENA,
+//                      MAX, COACH PRIME): competition preparation, nutrition
+//                      tracking, supplement suggestions, weekly body tracking,
+//                      food/body-weight planning + protein/carb/fat quantities.
 const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
   {
     slug: "free",
     name: "Free",
     priceInr: 0,
-    features: ["Daily coach chat (limited)", "Workout plans", "Basic nutrition targets", "Progress tracking"],
+    features: ["2 AI coach bots", "Workout plans", "Basic nutrition targets", "Progress tracking"],
     aiMessageLimit: 10,
     reportsPerMonth: 1,
     coachingAccess: true,
@@ -24,6 +31,7 @@ const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
     supplementAccess: true,
     voiceAccess: false,
     advancedAnalytics: false,
+    botLimit: 2,
     isActive: true,
     sortOrder: 0,
   },
@@ -32,7 +40,7 @@ const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
     name: "Premium",
     priceInr: 499,
     features: [
-      "Unlimited* coach chat",
+      "2 AI coach bots (ARJUN + VEER)",
       "Personalized nutrition plans",
       "Supplement intelligence + product analysis",
       "Weekly + monthly reports",
@@ -46,6 +54,7 @@ const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
     supplementAccess: true,
     voiceAccess: true,
     advancedAnalytics: true,
+    botLimit: 2,
     isActive: true,
     sortOrder: 1,
   },
@@ -54,6 +63,7 @@ const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
     name: "Pro Coach",
     priceInr: 999,
     features: [
+      "3 AI coach bots (+ AARAV nutrition)",
       "Everything in Premium",
       "Advanced analytics",
       "Priority AI responses",
@@ -67,14 +77,21 @@ const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
     supplementAccess: true,
     voiceAccess: true,
     advancedAnalytics: true,
+    botLimit: 3,
     isActive: true,
     sortOrder: 2,
   },
   {
     slug: "competition",
-    name: "Competition",
-    priceInr: 1999,
-    features: ["Everything in Pro", "Competition prep module", "Peak-week guidance", "Check-in reviews"],
+    name: "Elite Pro",
+    priceInr: 1499,
+    features: [
+      "ALL AI coach bots — PRO category",
+      "Competition preparation + peak week",
+      "Nutrition tracking + supplement suggestions",
+      "Weekly body tracking + food/body-weight planning",
+      "Protein / carbs / fat quantity guidance",
+    ],
     aiMessageLimit: 500,
     reportsPerMonth: 60,
     coachingAccess: true,
@@ -83,6 +100,7 @@ const DEFAULT_PLANS: Array<Omit<Plan, "_id" | "_creationTime">> = [
     supplementAccess: true,
     voiceAccess: true,
     advancedAnalytics: true,
+    botLimit: 9,
     isActive: true,
     sortOrder: 3,
   },
@@ -96,7 +114,19 @@ export const seedPlans = mutation({
         .query("subscriptionPlans")
         .withIndex("by_slug", (q) => q.eq("slug", plan.slug))
         .first();
-      if (!existing) await ctx.db.insert("subscriptionPlans", plan);
+      if (!existing) {
+        await ctx.db.insert("subscriptionPlans", plan);
+      } else {
+        // Upsert key pricing/features so tier redesigns propagate to live data.
+        await ctx.db.patch(existing._id, {
+          name: plan.name,
+          priceInr: plan.priceInr,
+          features: plan.features,
+          botLimit: plan.botLimit,
+          sortOrder: plan.sortOrder,
+          isActive: true,
+        });
+      }
     }
     return { ok: true };
   },

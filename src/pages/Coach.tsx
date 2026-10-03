@@ -37,7 +37,8 @@ export default function Coach() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const personas = useQuery(api.coachPersonas.listPersonas);
+  const personasData = useQuery(api.coachPersonas.listPersonasForMe);
+  const personas = personasData?.personas;
   const profile = useQuery(api.profile.getProfile);
   const journey = useQuery(api.coachJourney.getJourney);
   const latest = useQuery(api.coachChat.getLatestConversation);
@@ -150,6 +151,14 @@ export default function Coach() {
   }
 
   async function handleSwitchPersona(personaId: Id<"coachPersonas">) {
+    const lockedPersona = personas?.find((p) => p._id === personaId && p.locked);
+    if (lockedPersona) {
+      toast.message(`${lockedPersona.name} is locked on your plan`, {
+        description: `Your ${personasData?.planName ?? "current"} plan unlocks ${personasData?.botLimit ?? 2} bots. Upgrade to add more coaches.`,
+      });
+      navigate("/subscription");
+      return;
+    }
     try {
       await ensureConversation({ personaId });
       const res = await assignCoach({ personaId });
@@ -186,6 +195,22 @@ export default function Coach() {
         {/* left rail: roster + history */}
         <div className="space-y-4">
           <Panel title="COACH ROSTER">
+            {personasData && (
+              <div className="mb-2 flex items-center justify-between gap-2 border border-border bg-secondary/50 px-2 py-1.5">
+                <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {personasData.planName.toUpperCase()} · {personasData.personas.filter((p) => !p.locked).length}/
+                  {personasData.personas.length} BOTS
+                </span>
+                {personasData.upgradeTo && (
+                  <button
+                    onClick={() => navigate("/subscription")}
+                    className="rounded-full bg-gradient-to-r from-[#a3e635] to-[#65d413] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#0a1205] hover:brightness-110"
+                  >
+                    UPGRADE +
+                  </button>
+                )}
+              </div>
+            )}
             <div className="space-y-1.5">
               {loading && <p className="text-xs text-muted-foreground">loading…</p>}
               {personas?.map((p) => (
@@ -194,16 +219,27 @@ export default function Coach() {
                   onClick={() => handleSwitchPersona(p._id)}
                   className={cn(
                     "w-full border px-2.5 py-2 text-left transition-colors",
-                    activePersona?._id === p._id
-                      ? "border-terminal-green bg-[#eef3ea]"
-                      : "border-border bg-card hover:border-muted-foreground/40",
+                    p.locked
+                      ? "border-border/60 bg-secondary/30 opacity-70"
+                      : activePersona?._id === p._id
+                        ? "border-terminal-green bg-[#eef3ea]"
+                        : "border-border bg-card hover:border-muted-foreground/40",
                   )}
                 >
                   <div className="flex items-center gap-2.5">
-                    <CoachAvatar name={p.name} accent={coachAccent(p.name)} className="size-9" />
+                    <div className="relative">
+                      <CoachAvatar name={p.name} accent={coachAccent(p.name)} className="size-9" />
+                      {p.locked && (
+                        <span className="absolute -bottom-1 -right-1 flex size-4 items-center justify-center rounded-full border border-border bg-background text-[8px]">
+                          🔒
+                        </span>
+                      )}
+                    </div>
                     <div className="min-w-0">
                       <div className="text-xs font-bold tracking-wide">{coachFullName(p.name)}</div>
-                      <div className="mt-0.5 truncate text-[10px] text-muted-foreground">{p.role}</div>
+                      <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                        {p.locked ? "LOCKED — upgrade to unlock" : p.role}
+                      </div>
                     </div>
                   </div>
                 </button>

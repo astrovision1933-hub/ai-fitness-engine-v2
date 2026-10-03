@@ -185,12 +185,41 @@ export const ensureConversation = mutation({
   args: { personaId: v.id("coachPersonas") },
   handler: async (ctx, args) => {
     const userId = await requireUserId(ctx);
-    const existing = await ctx.db
+    // Plan-tier gating — same rules as assignCoach (backend-enforced).
+    const persona = await ctx.db.get(args.personaId);
+    if (!persona || !persona.isActive) throw new Error("Unknown coach");
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .first();
+    const trialActive = sub?.status === "trialing" && (sub.trialEndsAt ?? 0) > Date.now();
+    const effectiveSlug =
+      sub && (sub.planSlug === "free" || sub.status === "active" || trialActive) ? sub.planSlug : "free";
+    const rank =
+      effectiveSlug === "competition" ? 3 : effectiveSlug === "pro_coach" ? 2 : effectiveSlug === "premium" ? 1 : 0;
+    const plan = await ctx.db
+      .query("subscriptionPlans")
+      .withIndex("by_slug", (q) => q.eq("slug", effectiveSlug))
+      .first();
+    const botLimit = plan?.botLimit ?? 2;
+    const allPersonas = await ctx.db.query("coachPersonas").collect();
+    const ordered = allPersonas
+      .filter((p) => p.isActive)
+      .sort((a, b) => (a.rosterOrder ?? 99) - (b.rosterOrder ?? 99) || a.name.localeCompare(b.name));
+    const idx = ordered.findIndex((p) => p._id === args.personaId);
+    const minRank = persona.minPlanRank ?? 0;
+    const alreadyExists = await ctx.db
       .query("conversations")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("personaId"), args.personaId))
       .first();
-    if (existing) return existing._id;
+    if (!alreadyExists && (idx >= botLimit || rank < minRank)) {
+      throw new Error(
+        `${persona.name} is locked on your plan. Upgrade in SUBSCRIPTION to unlock more AI coach bots.`,
+      );
+    }
+    if (alreadyExists) return alreadyExists._id;
     const id = await ctx.db.insert("conversations", {
       userId,
       personaId: args.personaId,

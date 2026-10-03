@@ -46,7 +46,7 @@ const DIET_TYPES = [
   { value: "indian", label: "Indian diet" },
 ] as const;
 
-const STEPS = ["BASIC", "GOAL", "EXPERIENCE", "TRAINING", "DIET", "LIFESTYLE", "PHYSIQUE", "TARGET"] as const;
+const STEPS = ["BASIC", "GOAL", "EXPERIENCE", "TRAINING", "DIET", "LIFESTYLE", "PHYSIQUE", "TARGET", "YOUR COACH"] as const;
 
 type OnboardingState = {
   name: string;
@@ -201,7 +201,9 @@ export default function Onboarding() {
   const markCoachWelcomeShown = useMutation(api.coachJourney.markCoachWelcomeShown);
   const savePhysique = useMutation(api.physique.savePhysiqueCheckIn);
 
-  const personas = useQuery(api.coachPersonas.listPersonas);
+  // Plan-tiered roster: locked bots show with 🔒 + upgrade CTA.
+  const personasData = useQuery(api.coachPersonas.listPersonasForMe);
+  const personas = personasData?.personas;
   const [personaId, setPersonaId] = useState<string>("");
 
   // Ensure the persona roster exists when the user reaches coach selection.
@@ -237,7 +239,9 @@ export default function Onboarding() {
         // Physique information is always optional — never block progress.
         return true;
       case 7:
-        return state.goalDescription.trim().length > 0 && !!personaId;
+        return state.goalDescription.trim().length > 0;
+      case 8:
+        return !!personaId;
       default:
         return false;
     }
@@ -379,7 +383,7 @@ export default function Onboarding() {
           <span className="text-xs font-semibold uppercase tracking-[0.22em]">
             AFE://ONBOARDING
           </span>
-          <TerminalBadge tone="ok">STEP {step + 1}/8</TerminalBadge>
+          <TerminalBadge tone="ok">STEP {step + 1}/{STEPS.length}</TerminalBadge>
         </div>
       </header>
 
@@ -902,40 +906,54 @@ export default function Onboarding() {
                     className="mt-1 rounded-none"
                   />
                 </div>
+              </section>
+            )}
 
-                <div>
-                  <label className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                    CHOOSE YOUR COACH
-                  </label>
-                  {personas === undefined ? (
-                    <p className="mt-1 text-xs text-muted-foreground">loading roster…</p>
-                  ) : (
-                    <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
-                      {personas.map((p) => (
-                        <button
-                          key={p._id}
-                          type="button"
-                          onClick={() => setPersonaId(p._id)}
-                          className={cn(
-                            "border px-3 py-2 text-left transition-colors",
-                            personaId === p._id
-                              ? "border-terminal-green bg-[#eef3ea]"
+            {step === 8 && (
+              <section className="space-y-5">
+                <SectionHeader index="09" title="CHOOSE YOUR AI COACH" hint="pick the coach that fits you" />
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Data collection complete, {state.name.trim() || "athlete"}! Ab apna AI coach chuno — yahi coach aapka
+                  workout, nutrition aur progress guide karega. Aap baad mein Coach page se kabhi bhi switch kar sakte
+                  ho.
+                </p>
+                {personas === undefined ? (
+                  <p className="text-xs text-muted-foreground">loading roster…</p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {personas.map((p) => (
+                      <button
+                        key={p._id}
+                        type="button"
+                        onClick={() => (p.locked ? undefined : setPersonaId(p._id))}
+                        className={cn(
+                          "border px-3 py-2.5 text-left transition-colors",
+                          personaId === p._id
+                            ? "border-terminal-green bg-[#eef3ea]"
+                            : p.locked
+                              ? "border-border/60 bg-secondary/30 opacity-70"
                               : "border-border bg-card hover:border-muted-foreground/40",
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-status-ok">{p.avatarGlyph}</span>
-                            <span className="text-xs font-bold tracking-wide">{p.name}</span>
-                          </div>
-                          <div className="mt-0.5 text-[10px] text-muted-foreground">{p.role}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <p className="mt-2 text-[10px] text-muted-foreground">
-                    AI personas — not real humans. You can switch anytime from the Coach page.
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-status-ok">{p.avatarGlyph}</span>
+                          <span className="text-xs font-bold tracking-wide">{p.name}</span>
+                          {p.locked && <span className="ml-auto text-[9px]">🔒</span>}
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-muted-foreground">
+                          {p.locked ? "LOCKED — upgrade plan to unlock" : p.role}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {personasData && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Your plan unlocks {personasData.botLimit} bots ({personasData.planName}).
+                    {personasData.upgradeTo ? " Upgrade in SUBSCRIPTION for more coaches." : ""} AI personas — not real
+                    humans.
                   </p>
-                </div>
+                )}
               </section>
             )}
           </div>
@@ -950,7 +968,7 @@ export default function Onboarding() {
             >
               ← BACK
             </Button>
-            {step < 7 ? (
+            {step < STEPS.length - 1 ? (
               <Button
                 className="rounded-none text-[11px] uppercase tracking-[0.14em]"
                 onClick={() => setStep((s) => s + 1)}

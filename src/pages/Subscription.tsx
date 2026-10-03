@@ -21,6 +21,7 @@ type Plan = {
   supplementAccess: boolean;
   voiceAccess: boolean;
   advancedAnalytics: boolean;
+  botLimit?: number;
   features: string[];
   isActive: boolean;
 };
@@ -46,6 +47,7 @@ type Purchase = {
 
 const FEATURE_ROWS: Array<{ key: keyof Plan; label: string }> = [
   { key: "aiMessageLimit", label: "AI messages / day" },
+  { key: "botLimit", label: "AI coach bots" },
   { key: "reportsPerMonth", label: "Reports / month" },
   { key: "coachingAccess", label: "AI coaching" },
   { key: "nutritionAccess", label: "Nutrition engine" },
@@ -215,6 +217,7 @@ export default function Subscription() {
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {p.aiMessageLimit === -1 ? "Unlimited" : p.aiMessageLimit} AI msg/day ·{" "}
                   {p.reportsPerMonth === -1 ? "∞" : p.reportsPerMonth} reports/mo
+                  {typeof p.botLimit === "number" ? ` · ${p.botLimit} AI bots` : ""}
                 </p>
                 <ul className="mt-3 space-y-1 text-[11px]">
                   {p.features.slice(0, 4).map((f) => (

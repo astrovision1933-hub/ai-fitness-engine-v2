@@ -122,6 +122,12 @@ const schema = defineSchema(
       philosophy: v.string(),
       systemInstructions: v.string(),
       isActive: v.boolean(),
+      // Plan-tier gating: minimum plan rank required to chat with this bot.
+      // 0 = free, 1 = Premium (₹499), 2 = Pro Coach (₹999), 3 = Elite Pro (₹1499).
+      // `rosterOrder` fixes the display order so users always see which bots
+      // their plan unlocks first.
+      minPlanRank: v.optional(v.number()),
+      rosterOrder: v.optional(v.number()),
     }).index("by_slug", ["slug"]),
 
     coachAssignments: defineTable({
@@ -734,6 +740,8 @@ const schema = defineSchema(
       supplementAccess: v.boolean(),
       voiceAccess: v.boolean(),
       advancedAnalytics: v.boolean(),
+      // How many AI coach bots this plan unlocks in the roster.
+      botLimit: v.optional(v.number()),
       isActive: v.boolean(),
       sortOrder: v.number(),
     }).index("by_slug", ["slug"]),
