@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useVoiceCoach } from "@/hooks/use-voice-coach";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 
 const WARMUP = [
@@ -53,10 +52,6 @@ export default function Workout() {
   const [restLeft, setRestLeft] = useState<number | null>(null);
   const flashTimerRef = useRef<number | null>(null);
 
-  // Voice is available but never claims to be human.
-  const voice = useVoiceCoach({ enabled: true });
-  const { speak, sttSupported } = voice;
-
   async function handleInlineAsk(question: string) {
     if (!question.trim()) return;
     try {
@@ -71,11 +66,15 @@ export default function Workout() {
     selectedSessionId ? { sessionId: selectedSessionId } : "skip",
   );
 
-  // Auto-select an active (in-progress) session.
+  // Auto-select an active (in-progress) session. setState runs in a timer
+  // callback instead of synchronously in the effect body; deps keep close-button
+  // behavior (closing stays closed until the sessions query refreshes).
   useEffect(() => {
     if (selectedSessionId || !sessions) return;
     const active = sessions.find((s) => s.status === "in_progress");
-    if (active) setSelectedSessionId(active._id);
+    if (!active) return;
+    const t = window.setTimeout(() => setSelectedSessionId(active._id), 0);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessions]);
 
@@ -186,24 +185,29 @@ export default function Workout() {
   const completedSessions = sessions?.filter((s) => s.status === "completed") ?? [];
   const isDetailActive = detail?.session.status === "in_progress";
 
-  // Coach onboarding flash shown once per session open.
+  // Coach onboarding flash shown once per session open. setState runs inside
+  // timer callbacks (not synchronously in the effect body); a 0ms show delay is
+  // imperceptible against the 5.5s display.
   useEffect(() => {
-    if (isDetailActive) {
+    if (!isDetailActive) return;
+    let hideTimer: number | undefined;
+    const showTimer = window.setTimeout(() => {
       setCoachFlash("ASK YOUR COACH — type anything about this workout, form, fatigue or your plan.");
-      const t = window.setTimeout(() => setCoachFlash(null), 5500);
-      flashTimerRef.current = t;
-      return () => window.clearTimeout(t);
-    }
+      hideTimer = window.setTimeout(() => setCoachFlash(null), 5500);
+      flashTimerRef.current = hideTimer;
+    }, 0);
+    return () => {
+      window.clearTimeout(showTimer);
+      if (hideTimer !== undefined) window.clearTimeout(hideTimer);
+    };
   }, [isDetailActive]);
 
-  // Rest-timer countdown: ticks the active rest period down to 0, then clears.
+  // Rest-timer countdown: ticks the active rest period down, then clears.
+  // Clears inside the timer callback (v <= 1 → null) rather than via a
+  // synchronous setState in the effect body.
   useEffect(() => {
     if (restLeft === null) return;
-    if (restLeft <= 0) {
-      setRestLeft(null);
-      return;
-    }
-    const t = window.setTimeout(() => setRestLeft((v) => (v === null ? null : v - 1)), 1000);
+    const t = window.setTimeout(() => setRestLeft((v) => (v === null || v <= 1 ? null : v - 1)), 1000);
     return () => window.clearTimeout(t);
   }, [restLeft]);
 
