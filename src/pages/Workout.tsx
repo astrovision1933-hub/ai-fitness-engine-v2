@@ -462,6 +462,9 @@ export default function Workout() {
                 const isSuperset = typeof ex.supersetWith === "string" && ex.supersetWith.length > 0;
                 const lastWeight = lastWeightFor(ex);
                 const prefillWeight = defaultWeightFor(ex);
+                // Numeric target reps (e.g. "8-10" / "AMRAP" skip) for prefill on rows
+                // that have no stored default weight (older plans).
+                const targetReps = /^\d+$/.test(ex.reps) ? Number(ex.reps) : undefined;
                 return (
                   <div key={ex._id} className="border border-border bg-card">
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
@@ -522,7 +525,7 @@ export default function Workout() {
                               min={0}
                               placeholder="kg"
                               disabled={!isDetailActive}
-                              value={entry.weightKg ?? prefillWeight ?? ""}
+                              value={entry.weightKg ?? prefillWeight ?? lastWeight ?? ""}
                               onChange={(e) =>
                                 mergeLog(key, { weightKg: e.target.value === "" ? undefined : Number(e.target.value) })
                               }
@@ -533,7 +536,7 @@ export default function Workout() {
                               min={0}
                               placeholder="reps"
                               disabled={!isDetailActive}
-                              value={entry.reps ?? ""}
+                              value={entry.reps ?? targetReps ?? ""}
                               onChange={(e) =>
                                 mergeLog(key, { reps: e.target.value === "" ? undefined : Number(e.target.value) })
                               }
