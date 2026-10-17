@@ -22,7 +22,22 @@ export const recordSignin = mutation({
       return { notified: false as const, reason: "no_email_on_user" as const };
     }
 
-    const signedInAt = Date.now();
+    // Duplicate-guard: if an alert for this athlete was recorded in the last
+    // 60 seconds (e.g. a replayed sign-in attempt), skip instead of emailing
+    // again. Pending rows (sentAt still unset) are included, so a retry
+    // cannot double-fire an email that is already scheduled.
+    const recent = await ctx.db
+      .query("signupNotices")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(1);
+    const lastSignedInAt = recent[0]?.signedInAt;
+    const now = Date.now();
+    if (lastSignedInAt !== undefined && now - lastSignedInAt < 60_000) {
+      return { notified: false as const, reason: "duplicate_recent_signin" as const };
+    }
+
+    const signedInAt = now;
     const noticeId = await ctx.db.insert("signupNotices", {
       userId,
       email: user.email,

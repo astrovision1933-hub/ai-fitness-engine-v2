@@ -73,7 +73,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       await signIn("email-otp", formData);
       // Real verified sign-in — alert the site owner (fire-and-forget;
       // duplicate-page loads and guest sessions never reach this path).
-      void trackSignin({}).catch(() => undefined);
+      void trackSignin({}).catch((notificationError) =>
+        // Clear diagnostics without blocking the sign-in flow: the alert is
+        // auxiliary and will retry automatically on the athlete's next sign-in.
+        console.error("Sign-in notification could not be sent:", notificationError),
+      );
       navigate(redirect);
     } catch (error) {
       console.error("OTP verification error:", error);
