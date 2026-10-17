@@ -5,8 +5,6 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { StatusDot } from "@/components/terminal";
 import { ArrowRight, Loader2, UserX } from "lucide-react";
@@ -26,7 +24,6 @@ function resolveRedirectAfterAuth(returnTo: string | null, fallback = "/dashboar
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
-  const trackSignin = useMutation(api.signupTracker.recordSignin);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = resolveRedirectAfterAuth(
@@ -71,13 +68,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     try {
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
-      // Real verified sign-in — alert the site owner (fire-and-forget;
-      // duplicate-page loads and guest sessions never reach this path).
-      void trackSignin({}).catch((notificationError) =>
-        // Clear diagnostics without blocking the sign-in flow: the alert is
-        // auxiliary and will retry automatically on the athlete's next sign-in.
-        console.error("Sign-in notification could not be sent:", notificationError),
-      );
       navigate(redirect);
     } catch (error) {
       console.error("OTP verification error:", error);

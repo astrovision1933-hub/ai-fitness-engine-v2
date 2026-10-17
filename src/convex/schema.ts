@@ -821,21 +821,6 @@ const schema = defineSchema(
       createdAt: v.number(),
     }).index("by_user", ["userId"]).index("by_user_created", ["userId", "createdAt"]),
 
-    // Site-owner sign-in alerts: one row per verified email-OTP sign-in.
-    // signupTracker.ts records the sign-in, schedules signupNotify.sendOwnerEmail,
-    // and the action marks sentAt / messageId here after Resend accepts the mail.
-    signupNotices: defineTable({
-      userId: v.id("users"),
-      email: v.string(),
-      name: v.optional(v.string()),
-      signedInAt: v.number(),
-      sentAt: v.optional(v.number()),
-      messageId: v.optional(v.string()),
-      error: v.optional(v.string()),
-    })
-      .index("by_user", ["userId"])
-      .index("by_signed_in", ["signedInAt"]),
-
     analyticsEvents: defineTable({
       userId: v.optional(v.id("users")),
       name: v.string(),
