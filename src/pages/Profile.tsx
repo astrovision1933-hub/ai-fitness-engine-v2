@@ -3,6 +3,7 @@ import { api } from "@/convex/_generated/api";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { AppShell } from "@/components/AppShell";
+import { useAuth } from "@/hooks/use-auth";
 import { Panel, FieldRow, TerminalBadge, StatChip } from "@/components/terminal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,26 @@ export default function Profile() {
   const assignCoach = useMutation(api.coachJourney.assignCoach);
   const savePreferences = useMutation(api.profile.savePreferences);
 
+  // ------------------------------------------------------------------
+  // USER HISTORY — own timeline, plus a client lookup for admins
+  // ------------------------------------------------------------------
+  const myHistory = useQuery(api.history.getMyHistory, {});
+  const [historyTab, setHistoryTab] = useState<"mine" | "client">("mine");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientId, setClientId] = useState<Id<"users"> | null>(null);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const clients = useQuery(
+    api.admin.listUsers,
+    isAdmin && historyTab === "client" ? { search: clientSearch || undefined } : "skip",
+  );
+  const clientHistory = useQuery(
+    api.history.getClientHistory,
+    clientId ? { userId: clientId } : "skip",
+  );
+
+  const activeHistory = historyTab === "mine" ? myHistory : clientHistory?.timeline ?? null;
+
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalValue, setGoalValue] = useState("");
   const [goalDescription, setGoalDescription] = useState("");
@@ -43,14 +64,6 @@ export default function Profile() {
   useEffect(() => {
     if (profile === null) navigate("/onboarding", { replace: true });
   }, [profile, navigate]);
-
-  useEffect(() => {
-    if (goal) {
-      setGoalValue(goal.goal);
-      setGoalDescription(goal.description ?? "");
-      setGoalDate(goal.targetDate ?? "");
-    }
-  }, [goal]);
 
   if (!profile) {
     return (
@@ -184,6 +197,105 @@ export default function Profile() {
           )}
         </Panel>
 
+        {/* user history */}
+        <Panel
+          title="USER HISTORY"
+          subtitle="one merged timeline — workouts, check-ins, meals, activity, milestones, reviews and reports"
+          right={
+            isAdmin ? (
+              <div className="flex gap-1.5">
+                <Button size="sm" variant={historyTab === "mine" ? "default" : "outline"}
+                  className="rounded-none text-[10px] uppercase tracking-[0.12em]"
+                  onClick={() => { setHistoryTab("mine"); setClientId(null); }}>
+                  MY HISTORY
+                </Button>
+                <Button size="sm" variant={historyTab === "client" ? "default" : "outline"}
+                  className="rounded-none text-[10px] uppercase tracking-[0.12em]"
+                  onClick={() => setHistoryTab("client")}>
+                  CLIENT LOOKUP
+                </Button>
+              </div>
+            ) : <span />
+          }
+        >
+          {isAdmin && historyTab === "client" && (
+            <div className="mb-3 space-y-2 border-b border-border pb-3">
+              <Input
+                placeholder="search client name or email…"
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                className="rounded-none"
+              />
+              <div className="max-h-32 space-y-1 overflow-y-auto">
+                {(clients ?? []).map((c) => (
+                  <button
+                    key={c._id}
+                    type="button"
+                    onClick={() => setClientId(c._id)}
+                    className={cn(
+                      "flex w-full items-center justify-between border px-2 py-1.5 text-left text-xs transition-colors",
+                      clientId === c._id
+                        ? "border-terminal-green bg-[#eef3ea]"
+                        : "border-border bg-card hover:border-muted-foreground/40",
+                    )}
+                  >
+                    <span className="min-w-0 truncate">
+                      <span className="font-semibold">{c.name ?? c.email}</span>
+                      {c.name && <span className="ml-2 text-muted-foreground">{c.email}</span>}
+                    </span>
+                    <TerminalBadge tone={c.subStatus === "active" ? "ok" : "ink"}>{c.plan}</TerminalBadge>
+                  </button>
+                ))}
+                {clients?.length === 0 && (
+                  <p className="text-xs text-muted-foreground">No clients match “{clientSearch}”.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {historyTab === "client" && isAdmin && !clientId && (
+            <p className="text-xs text-muted-foreground">
+              Pick a client above to pull their full activity history.
+            </p>
+          )}
+
+          {activeHistory === undefined && (
+            <p className="text-xs text-muted-foreground">&gt; loading history…</p>
+          )}
+
+          {activeHistory !== undefined && activeHistory !== null && (
+            <div className="max-h-96 space-y-1 overflow-y-auto">
+              {activeHistory.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {historyTab === "mine"
+                    ? "No history yet — it fills up as you train, eat and check in."
+                    : "This client has no activity records yet."}
+                </p>
+              )}
+              {activeHistory.map((item, i) => (
+                <div key={`${item.at}-${i}`} className="flex items-baseline gap-2 border-b border-border/60 py-1.5 text-xs last:border-0">
+                  <span className="w-20 shrink-0 text-muted-foreground">{item.date}</span>
+                  <TerminalBadge tone={
+                    item.kind === "workout"
+                      ? item.status === "completed" ? "ok" : "warn"
+                      : item.kind === "milestone"
+                        ? "ok"
+                        : item.kind === "review" || item.kind === "report"
+                          ? "info"
+                          : "ink"
+                  }>
+                    {item.kind}
+                  </TerminalBadge>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-foreground">{item.title}</span>
+                    <span className="ml-2 text-muted-foreground">{item.detail}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+
         {/* physique tracker */}
         <Panel
           title="PHYSIQUE TRACKER"
@@ -217,7 +329,15 @@ export default function Profile() {
         {/* goal + progress */}
         <div className="grid gap-4 lg:grid-cols-3">
           <Panel title="CURRENT GOAL" className="lg:col-span-2" right={
-            <Button size="sm" variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.12em]" onClick={() => setGoalOpen((v) => !v)}>
+            <Button size="sm" variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.12em]" onClick={() => {
+              // Prefill the edit form at open time — no sync-on-render effect.
+              if (!goalOpen) {
+                setGoalValue(goal?.goal ?? "");
+                setGoalDescription(goal?.description ?? "");
+                setGoalDate(goal?.targetDate ?? "");
+              }
+              setGoalOpen((v) => !v);
+            }}>
               {goalOpen ? "CANCEL" : "EDIT GOAL"}
             </Button>
           }>
