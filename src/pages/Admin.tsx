@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "react-router";
+import { Lock, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { GOAL_LABELS, CATEGORY_LABELS, KNOWLEDGE_CATEGORIES } from "@/lib/labels";
 
@@ -106,9 +107,117 @@ const TABS = [
 
 type Tab = (typeof TABS)[number];
 
+/**
+ * Console route gate. The panel itself only mounts once the account has
+ * entered the admin password, so no admin query fires while locked.
+ */
 export default function Admin() {
   const { user, isLoading } = useAuth();
   const isAdmin = user?.role === "admin";
+  const gate = useQuery(api.admin.getAdminGate, isAdmin ? {} : "skip");
+
+  if (isLoading || (isAdmin && gate === undefined)) {
+    return (
+      <AppShell>
+        <div className="space-y-2 font-mono text-xs text-muted-foreground">
+          <p>&gt; verifying credentials…</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <AppShell>
+        <Panel title="ACCESS RESTRICTED">
+          <p className="text-sm text-muted-foreground">
+            This console requires an administrator account. Role-based access is enforced server-side — every admin
+            function re-checks the caller's role against the database.
+          </p>
+          <Button asChild variant="outline" className="mt-3 rounded-none text-[10px] uppercase tracking-[0.12em]">
+            <Link to="/dashboard">BACK TO DASHBOARD →</Link>
+          </Button>
+        </Panel>
+      </AppShell>
+    );
+  }
+
+  if (!gate?.unlocked) return <AdminLockScreen />;
+
+  return <AdminConsole />;
+}
+
+function AdminLockScreen() {
+  const unlock = useMutation(api.admin.unlockAdminPanel);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!password) return;
+    setBusy(true);
+    try {
+      await unlock({ password });
+      setPassword("");
+      toast.success("Admin console unlocked");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Wrong admin password");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-md">
+        <Panel title="ADMIN LOCKED" subtitle="password protected console">
+          <div className="flex items-center gap-2.5 text-muted-foreground">
+            <span className="flex size-9 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary">
+              <Lock className="size-4" aria-hidden />
+            </span>
+            <p className="text-xs leading-5">
+              Enter the admin password to open the control console. The unlock stays valid for 12 hours on this account.
+            </p>
+          </div>
+          <form onSubmit={submit} className="mt-4 space-y-2.5">
+            <label
+              htmlFor="admin-password"
+              className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+            >
+              ADMIN PASSWORD
+            </label>
+            <Input
+              id="admin-password"
+              type="password"
+              autoFocus
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="rounded-none"
+            />
+            <Button
+              type="submit"
+              disabled={busy || !password}
+              className="w-full rounded-none text-[10px] uppercase tracking-[0.14em]"
+            >
+              <ShieldCheck className="mr-2 size-4" aria-hidden />
+              {busy ? "VERIFYING…" : "UNLOCK CONSOLE"}
+            </Button>
+          </form>
+          <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+            The password is verified on the server and is never stored in the browser.
+          </p>
+        </Panel>
+      </div>
+    </AppShell>
+  );
+}
+
+function AdminConsole() {
+  const { user, isLoading } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const lockAdmin = useMutation(api.admin.lockAdminPanel);
 
   const [tab, setTab] = useState<Tab>("DASHBOARD");
   const [search, setSearch] = useState("");
@@ -198,7 +307,21 @@ export default function Admin() {
                 never exposed; safety settings cannot be disabled.
               </p>
             </div>
-            <TerminalBadge tone="warn">PRIVILEGED ACCESS</TerminalBadge>
+            <div className="flex items-center gap-2">
+              <TerminalBadge tone="warn">PRIVILEGED ACCESS</TerminalBadge>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-none text-[9px] uppercase tracking-[0.12em]"
+                onClick={() =>
+                  lockAdmin({})
+                    .then(() => toast.success("Console locked"))
+                    .catch(() => toast.error("Could not lock the console"))
+                }
+              >
+                <Lock className="mr-1.5 size-3.5" aria-hidden /> LOCK
+              </Button>
+            </div>
           </div>
         </Panel>
 

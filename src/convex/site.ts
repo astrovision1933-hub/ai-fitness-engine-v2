@@ -43,11 +43,16 @@ const MAX_IMAGE_CHARS = 850_000;
 /** Optional artwork that replaces the illustrated coach in the hero. */
 const HERO_IMAGE_KEY = "hero_coach_image";
 
+const ADMIN_UNLOCK_WINDOW_MS = 12 * 60 * 60 * 1000;
+
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
   const user = await ctx.db.get(userId);
   if (!user || user.role !== "admin" || user.disabled) throw new Error("Admin access required");
+  if (!user.adminUnlockedAt || Date.now() - user.adminUnlockedAt > ADMIN_UNLOCK_WINDOW_MS) {
+    throw new Error("Admin console is locked — enter the admin password");
+  }
   return user;
 }
 

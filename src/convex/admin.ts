@@ -3,19 +3,81 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
 
 /* ------------------------------------------------------------------ */
 /* Auth guard — every admin function checks role from the users table   */
 /* ------------------------------------------------------------------ */
 
-async function requireAdminMutation(ctx: QueryCtx | MutationCtx) {
+/** How long one password entry keeps the console open. */
+const ADMIN_UNLOCK_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+/** Role check only — used by lookups that live outside the locked console. */
+async function requireAdminRole(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
   const user = await ctx.db.get(userId);
   if (!user || user.role !== "admin" || user.disabled) throw new Error("Admin access required");
   return user;
 }
+
+/**
+ * Console guard — admin role PLUS a recent password unlock. The password
+ * itself never reaches the browser: it is verified here against the
+ * ADMIN_PANEL_PASSWORD deployment env var.
+ */
+async function requireAdminMutation(ctx: QueryCtx | MutationCtx) {
+  const user = await requireAdminRole(ctx);
+  if (!user.adminUnlockedAt || Date.now() - user.adminUnlockedAt > ADMIN_UNLOCK_WINDOW_MS) {
+    throw new Error("Admin console is locked — enter the admin password");
+  }
+  return user;
+}
+
+/** Gate state for the console route (safe to call while locked). */
+export const getAdminGate = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { isAdmin: false, unlocked: false, expiresAt: null };
+    const user = await ctx.db.get(userId);
+    const isAdmin = !!user && user.role === "admin" && !user.disabled;
+    const unlockedAt = user?.adminUnlockedAt ?? null;
+    const unlocked = isAdmin && unlockedAt !== null && Date.now() - unlockedAt <= ADMIN_UNLOCK_WINDOW_MS;
+    return {
+      isAdmin,
+      unlocked,
+      expiresAt: unlocked && unlockedAt ? unlockedAt + ADMIN_UNLOCK_WINDOW_MS : null,
+    };
+  },
+});
+
+/** Verify the admin password and open the console for this account. */
+export const unlockAdminPanel = mutation({
+  args: { password: v.string() },
+  handler: async (ctx, args) => {
+    const user = await requireAdminRole(ctx);
+    const expected = process.env.ADMIN_PANEL_PASSWORD;
+    if (!expected) throw new Error("Admin password is not configured on the server");
+    if (args.password !== expected) throw new Error("Wrong admin password");
+    await ctx.db.patch(user._id, { adminUnlockedAt: Date.now() });
+    await ctx.runMutation(internal.services.memory.writeAuditLog, {
+      userId: user._id,
+      action: "admin_console_unlock",
+      detail: "password verified",
+    });
+    return { unlocked: true, expiresAt: Date.now() + ADMIN_UNLOCK_WINDOW_MS };
+  },
+});
+
+/** Close the console immediately on this account. */
+export const lockAdminPanel = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await requireAdminRole(ctx);
+    await ctx.db.patch(user._id, { adminUnlockedAt: undefined });
+    return { unlocked: false };
+  },
+});
 
 /**
  * One-time owner bootstrap — run from the CLI only (`convex run`), never from
@@ -139,7 +201,8 @@ export const getMetrics = query({
 export const listUsers = query({
   args: { search: v.optional(v.string()), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    await requireAdminMutation(ctx);
+    // Also used by the Profile client-history lookup, so it stays role-only.
+    await requireAdminRole(ctx);
     const rows = await ctx.db.query("users").take(args.limit ?? 200);
     const subs = await ctx.db.query("subscriptions").collect();
     const subByUser = new Map(subs.map((s) => [s.userId, s]));

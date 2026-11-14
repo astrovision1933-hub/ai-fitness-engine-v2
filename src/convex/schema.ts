@@ -30,6 +30,7 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()),
       role: v.optional(roleValidator),
       disabled: v.optional(v.boolean()), // Part 4: admin account control
+      adminUnlockedAt: v.optional(v.number()), // password unlock timestamp for the admin console
     }).index("email", ["email"]),
 
     // ---- Part 1: AI Fitness Engine domain tables ----
