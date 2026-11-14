@@ -423,6 +423,10 @@
 .from-\[\#d0ff67\] {
   --tw-gradient-from: var(--terminal-green-bright);
 }
+/* text sitting on a primary-filled surface (buttons, active nav, badges) */
+.text-\[\#0a1205\] {
+  color: var(--primary-foreground);
+}
 .bg-atmo, body {
   background-color: var(--background);
   color: var(--foreground);

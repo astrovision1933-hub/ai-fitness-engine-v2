@@ -112,6 +112,10 @@ export const SITE_THEMES: ThemePalette[] = [
     bg: "#0b0505", fg: "#fdeaea", card: "#180b0b", primary: "#ef4444", primaryFg: "#1a0404",
     secondary: "#221010", muted: "#c09a9a", border: "#381a1a", accent: "#fca5a5", accent2: "#dc2626", sidebar: "#0e0606",
   }),
+  makeTheme("desert-bronze", "Desert Bronze", {
+    bg: "#0e0a06", fg: "#f6ece0", card: "#1a130c", primary: "#d9a066", primaryFg: "#1a1208",
+    secondary: "#241a11", muted: "#bfa892", border: "#362619", accent: "#e8c39e", accent2: "#b9834a", sidebar: "#100b07",
+  }),
 ];
 
 export interface FontPreset {
@@ -164,6 +168,34 @@ export const SITE_FONTS: FontPreset[] = [
     body: '"Orbitron", "Space Grotesk", ui-sans-serif, sans-serif',
     display: '"Orbitron", "Space Grotesk", ui-sans-serif, sans-serif',
     google: "Orbitron:wght@400;500;600;700",
+  },
+  {
+    id: "dm-sans",
+    name: "DM Sans (clean geometric)",
+    body: '"DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif',
+    display: '"DM Sans", "Space Grotesk", ui-sans-serif, sans-serif',
+    google: "DM+Sans:wght@400;500;700",
+  },
+  {
+    id: "oswald",
+    name: "Oswald (condensed athletic)",
+    body: '"Oswald", "Inter", ui-sans-serif, sans-serif',
+    display: '"Oswald", "Space Grotesk", ui-sans-serif, sans-serif',
+    google: "Oswald:wght@400;500;600;700",
+  },
+  {
+    id: "playfair",
+    name: "Playfair Display (premium serif)",
+    body: '"Playfair Display", Georgia, serif',
+    display: '"Playfair Display", Georgia, serif',
+    google: "Playfair+Display:wght@400;500;600;700",
+  },
+  {
+    id: "rajdhani",
+    name: "Rajdhani (tech scoreboard)",
+    body: '"Rajdhani", "Inter", ui-sans-serif, sans-serif',
+    display: '"Rajdhani", "Space Grotesk", ui-sans-serif, sans-serif',
+    google: "Rajdhani:wght@400;500;600;700",
   },
 ];
 

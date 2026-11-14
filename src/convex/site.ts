@@ -19,9 +19,21 @@ const THEME_IDS = [
   "forest-emerald",
   "solar-amber",
   "crimson-carbon",
+  "desert-bronze",
 ] as const;
 
-const FONT_IDS = ["space-inter", "poppins", "montserrat", "roboto", "lora", "orbitron"] as const;
+const FONT_IDS = [
+  "space-inter",
+  "poppins",
+  "montserrat",
+  "roboto",
+  "lora",
+  "orbitron",
+  "dm-sans",
+  "oswald",
+  "playfair",
+  "rajdhani",
+] as const;
 
 const PLAN_SLUGS = ["premium", "pro_coach", "competition"] as const;
 

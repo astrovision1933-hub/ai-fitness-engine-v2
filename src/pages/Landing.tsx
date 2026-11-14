@@ -168,11 +168,11 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-atmo">
       {/* top bar */}
-      <header className="glass sticky top-0 z-50 border-b border-border">
+      <header className="glass sticky top-0 z-50 border-b border-primary/20">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-2.5">
             <svg viewBox="0 0 32 32" className="size-9 drop-shadow-[0_0_8px_var(--neon-glow)]" aria-hidden>
-              <rect x="1" y="1" width="30" height="30" rx="8" fill="#0c110c" stroke="var(--terminal-green)" strokeOpacity="0.6" />
+              <rect x="1" y="1" width="30" height="30" rx="8" fill="var(--card)" stroke="var(--terminal-green)" strokeOpacity="0.6" />
               <g fill="var(--terminal-green)">
                 <rect x="9" y="8.5" width="14" height="3.2" rx="1" />
                 <rect x="9" y="13.5" width="4.2" height="11" rx="1" />

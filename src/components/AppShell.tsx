@@ -83,7 +83,7 @@ function EngineMark({ className }: { className?: string }) {
     <svg viewBox="0 0 40 40" className={className} aria-hidden>
       <path
         d="M20 2.5 35.5 11.5v17L20 37.5 4.5 28.5v-17z"
-        fill="#0b100b"
+        fill="var(--card)"
         stroke="var(--terminal-green)"
         strokeWidth="2"
         strokeLinejoin="round"
@@ -235,7 +235,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-atmo">
       {/* ================= TOP COMMAND BAR ================= */}
-      <header className="glass fixed inset-x-0 top-0 z-50 border-b border-border">
+      <header className="glass fixed inset-x-0 top-0 z-50 border-b border-primary/20">
         <div className="flex h-16 items-center gap-3 px-3 sm:px-5">
           <button
             className="hidden rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground lg:inline-flex"
@@ -395,7 +395,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className={cn("transition-[padding] duration-300", sidebarOpen ? "lg:pl-[248px]" : "lg:pl-0")}>
         <main className="mx-auto w-full max-w-6xl px-3 pb-28 pt-5 sm:px-5 lg:pb-10">{children}</main>
 
-        <footer className="border-t border-border/60 px-5 py-4 lg:pl-0">
+        <footer className="border-t border-primary/15 bg-sidebar/40 px-5 py-4 lg:pl-0">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
             <span>AI Fitness Engine — Core v0.1 · Part 4/4 · All Modules Live</span>
             <span>Signed in as {user?.email ?? "guest"}</span>

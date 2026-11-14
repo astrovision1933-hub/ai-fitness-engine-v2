@@ -207,13 +207,18 @@ export function AdminSitePanel() {
         </p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight">Website Studio</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Theme, typography and home-page copy change instantly for every visitor. Banners go live
-          the moment you save them, and coupons give customers a free paid plan.
+          One click on a theme or font saves it for every visitor — header, footer, background,
+          cards, buttons and typography all change together. Banners go live the moment you save
+          them, and coupons give customers a free paid plan.
         </p>
       </Panel>
 
       {/* ---------------- THEMES ---------------- */}
-      <SectionHeader index="01" title="THEME PRESETS" hint="10 themes · applies everywhere" />
+      <SectionHeader
+        index="01"
+        title="THEME PRESETS"
+        hint={`default + ${SITE_THEMES.length - 1} color combinations · click = applied & saved`}
+      />
       <Panel>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {SITE_THEMES.map((theme) => {
@@ -251,7 +256,11 @@ export function AdminSitePanel() {
       </Panel>
 
       {/* ---------------- FONTS ---------------- */}
-      <SectionHeader index="02" title="FONT PRESET" hint="body + display typography" />
+      <SectionHeader
+        index="02"
+        title="FONT PRESET"
+        hint={`${SITE_FONTS.length} typography designs · click = applied & saved`}
+      />
       <Panel>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {SITE_FONTS.map((font) => {
