@@ -158,7 +158,8 @@ function Stars({ count }: { count: number }) {
 }
 
 export default function Landing() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const { t } = useI18n();
   const { banners, heroImage } = useSiteCustomization();
   const primaryTo = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
@@ -189,6 +190,15 @@ export default function Landing() {
             </span>
           </div>
           <nav className="flex items-center gap-2.5">
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary/20"
+              >
+                <ShieldCheck className="size-3.5" aria-hidden />
+                <span className="hidden sm:inline">Admin</span>
+              </Link>
+            )}
             <LanguageSelector />
             {!isLoading && isAuthenticated ? (
               <Button

@@ -296,6 +296,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin")}
+                className="flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary/20"
+                aria-label="Open admin console"
+              >
+                <ShieldCheck className="size-4" aria-hidden />
+                <span className="hidden sm:inline">Admin</span>
+              </button>
+            )}
             <LanguageSelector />
             <button
               className="relative rounded-lg border border-border p-2 text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-foreground"
