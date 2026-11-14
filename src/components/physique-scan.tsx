@@ -29,15 +29,26 @@ export function PhysiqueScan({
 }) {
   const [progress, setProgress] = useState(0);
   const cbRef = useRef(onComplete);
-  cbRef.current = onComplete;
   const doneRef = useRef(false);
+
+  useEffect(() => {
+    cbRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const start = performance.now();
     let raf = 0;
+    let lastWhole = -1;
     const tick = (now: number) => {
       const p = Math.min(1, (now - start) / (SCAN_DURATION_SEC * 1000));
-      setProgress(p * 100);
+      // Re-render only when the whole percentage changes (~100 renders over the
+      // whole scan) instead of every animation frame. A 60fps re-render over a
+      // full-size photo is what made phones drop the tab after the camera step.
+      const whole = Math.round(p * 100);
+      if (whole !== lastWhole) {
+        lastWhole = whole;
+        setProgress(whole);
+      }
       if (p >= 1) {
         if (!doneRef.current) {
           doneRef.current = true;
@@ -52,11 +63,11 @@ export function PhysiqueScan({
   }, []);
 
   const elapsed = (progress / 100) * SCAN_DURATION_SEC;
+
   const stageIndex = Math.max(
     0,
     SCAN_STAGES.reduce((acc, s, i) => (elapsed >= s.at ? i : acc), 0),
   );
-  const stage = SCAN_STAGES[stageIndex];
   const band =
     stageIndex === 2
       ? "top-0 h-1/3"
@@ -75,7 +86,7 @@ export function PhysiqueScan({
 
         <div className="relative mx-auto mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-primary/30 bg-[#050705] shadow-[0_0_40px_rgba(163,230,53,0.18)]">
           {imageSrc ? (
-            <img src={imageSrc} alt="Physique scan" className="absolute inset-0 size-full object-cover opacity-60" />
+            <img src={imageSrc} alt="Physique scan" className="absolute inset-0 size-full object-cover opacity-60" draggable={false} />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
               Profile analysis
@@ -119,14 +130,14 @@ export function PhysiqueScan({
             />
           )}
 
-          {/* scan beam */}
+          {/* scan beam — CSS eases between the throttled steps */}
           <div
-            className="pointer-events-none absolute inset-x-0 h-28 -translate-y-1/2"
+            className="pointer-events-none absolute inset-x-0 h-28 -translate-y-1/2 transition-[top] duration-150 ease-linear"
             style={{ top: `${progress}%`, background: "linear-gradient(180deg, transparent, rgba(163,230,53,0.35), transparent)" }}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_20px_var(--neon-glow)]"
+            className="pointer-events-none absolute inset-x-0 h-0.5 bg-primary shadow-[0_0_20px_var(--neon-glow)] transition-[top] duration-150 ease-linear"
             style={{ top: `${progress}%` }}
             aria-hidden
           />

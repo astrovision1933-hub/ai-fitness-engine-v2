@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
@@ -12,7 +12,6 @@ import { fileToDownscaledDataUrl } from "@/lib/photo";
 import { PHOTO_GUIDELINES, PHYSIQUE_CATEGORY_LABELS } from "@/lib/physique";
 import { coachAccent } from "@/lib/coach-media";
 import { coachFullName } from "@/lib/coach-voice";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Camera, Image as ImageIcon, ShieldCheck, Trash2, Upload } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -76,18 +75,19 @@ export default function Physique() {
 
   const latest = state?.history?.[0] ?? null;
 
-  useEffect(() => {
-    const hist = state?.history ?? [];
-    if (hist.length >= 2 && !compareFrom && !compareTo) {
-      setCompareFrom(hist[hist.length - 1]._id);
-      setCompareTo(hist[0]._id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.history]);
+  // Default comparison pair is derived at render time (baseline → latest) so we
+  // never need a setState-in-effect just to seed the two selects.
+  const historyRows = state?.history ?? [];
+  const defaultFrom: Id<"physiqueCheckins"> | "" =
+    historyRows.length >= 2 ? historyRows[historyRows.length - 1]._id : "";
+  const defaultTo: Id<"physiqueCheckins"> | "" =
+    historyRows.length >= 2 ? historyRows[0]._id : "";
+  const effectiveFrom = compareFrom || defaultFrom;
+  const effectiveTo = compareTo || defaultTo;
 
   const comparison = useQuery(
     api.physique.getComparison,
-    compareFrom && compareTo ? { fromId: compareFrom, toId: compareTo } : "skip",
+    effectiveFrom && effectiveTo ? { fromId: effectiveFrom, toId: effectiveTo } : "skip",
   );
 
   const categoryLabel = useMemo(() => {
@@ -273,7 +273,14 @@ export default function Physique() {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0], false)}
+                  onChange={(e) => {
+                    const input = e.currentTarget;
+                    void handleFile(input.files?.[0], false).finally(() => {
+                      // Clear the input so the same photo can be retaken and the
+                      // browser does not keep the full-resolution file in memory.
+                      input.value = "";
+                    });
+                  }}
                 />
                 <input
                   ref={cameraRef}
@@ -281,7 +288,12 @@ export default function Physique() {
                   accept="image/*"
                   capture="environment"
                   className="hidden"
-                  onChange={(e) => handleFile(e.target.files?.[0], false)}
+                  onChange={(e) => {
+                    const input = e.currentTarget;
+                    void handleFile(input.files?.[0], false).finally(() => {
+                      input.value = "";
+                    });
+                  }}
                 />
 
                 <div>
@@ -441,7 +453,7 @@ export default function Physique() {
               <div>
                 <label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Previous date</label>
                 <select
-                  value={compareFrom}
+                  value={effectiveFrom}
                   onChange={(e) => setCompareFrom(e.target.value as Id<"physiqueCheckins">)}
                   className="mt-1 w-full border border-input bg-card px-3 py-2 text-sm"
                 >
@@ -455,7 +467,7 @@ export default function Physique() {
               <div>
                 <label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Current date</label>
                 <select
-                  value={compareTo}
+                  value={effectiveTo}
                   onChange={(e) => setCompareTo(e.target.value as Id<"physiqueCheckins">)}
                   className="mt-1 w-full border border-input bg-card px-3 py-2 text-sm"
                 >
@@ -504,7 +516,12 @@ export default function Physique() {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0], true)}
+              onChange={(e) => {
+                const input = e.currentTarget;
+                void handleFile(input.files?.[0], true).finally(() => {
+                  input.value = "";
+                });
+              }}
             />
             {latest && (
               <Button

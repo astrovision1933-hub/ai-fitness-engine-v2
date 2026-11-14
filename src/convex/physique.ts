@@ -197,8 +197,9 @@ export const getPhysiqueState = query({
         photos: c.checkins.filter((x) => x.photoDataUrl).length,
       },
       hasBaseline: Boolean(baseline),
-      latestPhoto: c.checkins[0]?.photoDataUrl ?? null,
-      baselinePhoto: baseline?.photoDataUrl ?? null,
+      // Photos travel once, inside `history` (newest + baseline only). Extra
+      // `latestPhoto`/`baselinePhoto` copies tripled a ~700KB base64 payload on
+      // every subscription push and are not read by any screen.
       history,
     };
   },
