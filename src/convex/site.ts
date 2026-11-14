@@ -28,7 +28,7 @@ const PLAN_SLUGS = ["premium", "pro_coach", "competition"] as const;
 export const DEFAULT_THEME = "neon-lime";
 export const DEFAULT_FONT = "space-inter";
 
-/** Editable marketing copy keys — only copy, never identifiers. */
+/* Editable marketing copy keys — only copy, never identifiers. */
 const TEXT_KEYS = [
   "hero.badge",
   "hero.line1",
@@ -40,6 +40,8 @@ const TEXT_KEYS = [
 ] as const;
 
 const MAX_IMAGE_CHARS = 850_000;
+/** Optional artwork that replaces the illustrated coach in the hero. */
+const HERO_IMAGE_KEY = "hero_coach_image";
 
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -73,10 +75,11 @@ async function writeSetting(ctx: MutationCtx, key: string, value: string) {
 export const getCustomization = query({
   args: {},
   handler: async (ctx) => {
-    const [theme, font, textRaw] = await Promise.all([
+    const [theme, font, textRaw, heroRaw] = await Promise.all([
       readSetting(ctx, "site_theme"),
       readSetting(ctx, "site_font"),
       readSetting(ctx, "site_text_overrides"),
+      readSetting(ctx, HERO_IMAGE_KEY),
     ]);
 
     let textOverrides: Record<string, string> = {};
@@ -103,6 +106,7 @@ export const getCustomization = query({
     return {
       theme: theme && (THEME_IDS as readonly string[]).includes(theme) ? theme : DEFAULT_THEME,
       font: font && (FONT_IDS as readonly string[]).includes(font) ? font : DEFAULT_FONT,
+      heroImage: heroRaw && heroRaw.startsWith("data:image/") ? heroRaw : null,
       textOverrides,
       banners: banners
         .sort((a, b) => a.order - b.order || b.createdAt - a.createdAt)
@@ -152,6 +156,31 @@ export const setTextOverrides = mutation({
     }
     await writeSetting(ctx, "site_text_overrides", JSON.stringify(cleaned));
     return cleaned;
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Hero artwork (admin) — replaces the illustrated coach in the hero   */
+/* ------------------------------------------------------------------ */
+
+export const setHeroImage = mutation({
+  args: { imageDataUrl: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const image = args.imageDataUrl.trim();
+    // Empty string = remove the artwork and fall back to the built-in coach.
+    if (!image) {
+      await writeSetting(ctx, HERO_IMAGE_KEY, "");
+      return null;
+    }
+    if (image.length > MAX_IMAGE_CHARS) {
+      throw new Error("Hero image is too large — try a smaller image");
+    }
+    if (!image.startsWith("data:image/")) {
+      throw new Error("Hero image must be an image file");
+    }
+    await writeSetting(ctx, HERO_IMAGE_KEY, image);
+    return image;
   },
 });
 

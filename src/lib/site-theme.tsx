@@ -173,6 +173,8 @@ export const DEFAULT_FONT_ID = "space-inter";
 interface Customization {
   theme: string;
   font: string;
+  /** Admin-uploaded artwork for the hero; null keeps the built-in coach. */
+  heroImage: string | null;
   textOverrides: Record<string, string>;
   banners: Array<{ _id: string; imageDataUrl: string; linkUrl: string | null; title: string | null }>;
 }
@@ -187,6 +189,7 @@ export function SiteThemeProvider({ children }: { children: ReactNode }) {
       data ?? {
         theme: DEFAULT_THEME_ID,
         font: DEFAULT_FONT_ID,
+        heroImage: null,
         textOverrides: {},
         banners: [],
       },
@@ -234,6 +237,7 @@ export function useSiteCustomization(): Customization {
     useContext(SiteThemeContext) ?? {
       theme: DEFAULT_THEME_ID,
       font: DEFAULT_FONT_ID,
+      heroImage: null,
       textOverrides: {},
       banners: [],
     }

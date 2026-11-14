@@ -160,7 +160,7 @@ function Stars({ count }: { count: number }) {
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const { t } = useI18n();
-  const { banners } = useSiteCustomization();
+  const { banners, heroImage } = useSiteCustomization();
   const primaryTo = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
   const primaryLabel = isAuthenticated ? t("hero.openCenter") : t("hero.getStarted");
 
@@ -309,7 +309,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* the robot */}
+            {/* the coach hero artwork */}
             <div className="relative h-[320px] sm:h-[440px]">
               <div className="glass absolute left-0 top-8 z-10 max-w-[210px] rounded-2xl border border-primary/35 p-3.5 shadow-[0_0_24px_rgba(163,230,53,0.18)] sm:left-2">
                 <p className="font-display text-sm font-semibold leading-snug">
@@ -323,7 +323,11 @@ export default function Landing() {
                   ))}
                 </span>
               </div>
-              <AIFitnessRobot state="idle" photoSrc="/robot-hero.png" className="h-full w-full" />
+              <AIFitnessRobot
+                state="idle"
+                photoSrc={heroImage ?? "/robot-hero.png"}
+                className="h-full w-full"
+              />
             </div>
           </div>
         </section>

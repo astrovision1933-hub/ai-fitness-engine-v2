@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
+import { useSiteCustomization } from "@/lib/site-theme";
 import { AppShell } from "@/components/AppShell";
 import { Panel, StatChip, TerminalBadge, AsciiBar, StatusDot, SectionHeader } from "@/components/terminal";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
@@ -166,6 +167,7 @@ function HudPanel({
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const { t } = useI18n();
+  const { heroImage } = useSiteCustomization();
   const navigate = useNavigate();
 
   const profile = useQuery(api.profile.getProfile);
@@ -331,14 +333,17 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* --- right: the AI robot --- */}
+            {/* --- right: the AI coach visual --- */}
             <div className="relative mx-auto h-[300px] w-full max-w-[420px] sm:h-[400px] xl:h-full xl:max-w-none">
-              {/* HUD rings behind the robot */}
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
-                <div className="size-[280px] rounded-full border border-primary/15 sm:size-[360px]" />
-                <div className="absolute size-[210px] rounded-full border border-dashed border-primary/20 animate-[spin-slow_26s_linear_infinite] sm:size-[280px]" />
-                <div className="absolute size-[330px] rounded-full border-t border-primary/25 sm:size-[430px]" />
-              </div>
+              {/* HUD rings sit behind the built-in coach only — an uploaded
+                  artwork already has its own ring, so they would clash. */}
+              {!heroImage && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
+                  <div className="size-[280px] rounded-full border border-primary/15 sm:size-[360px]" />
+                  <div className="absolute size-[210px] rounded-full border border-dashed border-primary/20 animate-[spin-slow_26s_linear_infinite] sm:size-[280px]" />
+                  <div className="absolute size-[330px] rounded-full border-t border-primary/25 sm:size-[430px]" />
+                </div>
+              )}
 
               {/* speech bubble */}
               <div className="glass absolute left-2 top-6 z-10 max-w-[220px] rounded-2xl border border-primary/35 p-3.5 shadow-[0_0_24px_rgba(163,230,53,0.18)] sm:left-6">
@@ -353,7 +358,11 @@ export default function Dashboard() {
                   ))}
                 </span>
               </div>
-              <AIFitnessRobot state="idle" photoSrc="/robot-hero.png" className="relative h-full w-full" />
+              <AIFitnessRobot
+                state="idle"
+                photoSrc={heroImage ?? "/robot-hero.png"}
+                className="relative h-full w-full"
+              />
             </div>
 
             {/* --- far right: live HUD (real data) --- */}

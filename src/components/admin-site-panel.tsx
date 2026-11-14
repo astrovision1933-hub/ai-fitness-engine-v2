@@ -8,7 +8,7 @@ import { SITE_FONTS, SITE_THEMES, useSiteCustomization } from "@/lib/site-theme"
 import { fileToDownscaledDataUrl } from "@/lib/photo";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { ImagePlus, Loader2, Ticket, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Ticket, Trash2, Upload } from "lucide-react";
 
 const TEXT_FIELDS: Array<{ key: string; label: string; multiline?: boolean }> = [
   { key: "hero.badge", label: "HOME BADGE LINE" },
@@ -76,6 +76,37 @@ export function AdminSitePanel() {
       toast.success("Home page text reset to defaults");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not reset text");
+    }
+  }
+
+  /* ---------------- hero artwork ---------------- */
+  const setHeroImage = useMutation(api.site.setHeroImage);
+  const [heroBusy, setHeroBusy] = useState(false);
+  const heroFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleHeroFile(file: File | undefined) {
+    if (!file) return;
+    setHeroBusy(true);
+    try {
+      const dataUrl = await fileToDownscaledDataUrl(file, 900, 0.86);
+      await setHeroImage({ imageDataUrl: dataUrl });
+      toast.success("Coach hero image updated — live on the home page now");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save that image");
+    } finally {
+      setHeroBusy(false);
+    }
+  }
+
+  async function removeHeroImage() {
+    setHeroBusy(true);
+    try {
+      await setHeroImage({ imageDataUrl: "" });
+      toast.success("Hero image removed — built-in coach restored");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove the image");
+    } finally {
+      setHeroBusy(false);
     }
   }
 
@@ -244,8 +275,69 @@ export function AdminSitePanel() {
         </div>
       </Panel>
 
+      {/* ---------------- HERO ARTWORK ---------------- */}
+      <SectionHeader index="03" title="AI COACH HERO IMAGE" hint="replaces the robotic coach artwork" />
+      <Panel>
+        <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
+          <div className="space-y-2.5">
+            <input
+              ref={heroFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const input = e.currentTarget;
+                void handleHeroFile(input.files?.[0]).finally(() => {
+                  input.value = "";
+                });
+              }}
+            />
+            <Button
+              variant="outline"
+              className="rounded-none text-[10px] uppercase tracking-[0.14em]"
+              onClick={() => heroFileRef.current?.click()}
+              disabled={heroBusy}
+            >
+              {heroBusy ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
+              {customization.heroImage ? "REPLACE HERO IMAGE" : "UPLOAD HERO IMAGE"}
+            </Button>
+            {customization.heroImage && (
+              <Button
+                variant="outline"
+                className="rounded-none border-red-500/40 text-[10px] uppercase tracking-[0.14em] text-red-300"
+                onClick={removeHeroImage}
+                disabled={heroBusy}
+              >
+                <Trash2 className="mr-2 size-4" /> REMOVE IMAGE
+              </Button>
+            )}
+            <p className="text-[10px] leading-4 text-muted-foreground">
+              Square artwork works best. Any size is auto-fitted to the hero (aspect ratio kept,
+              nothing cropped) and replaces the robotic coach on the home dashboard and landing
+              hero instantly.
+            </p>
+            <TerminalBadge tone={customization.heroImage ? "ok" : "ink"}>
+              {customization.heroImage ? "CUSTOM ARTWORK LIVE" : "BUILT-IN COACH"}
+            </TerminalBadge>
+          </div>
+          <div className="flex items-center justify-center border border-border bg-card p-2">
+            {customization.heroImage ? (
+              <img
+                src={customization.heroImage}
+                alt="Coach hero preview"
+                className="max-h-40 w-full object-contain"
+              />
+            ) : (
+              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                no image uploaded
+              </span>
+            )}
+          </div>
+        </div>
+      </Panel>
+
       {/* ---------------- TEXT ---------------- */}
-      <SectionHeader index="03" title="HOME PAGE TEXT" hint="leave empty to keep the default copy" />
+      <SectionHeader index="04" title="HOME PAGE TEXT" hint="leave empty to keep the default copy" />
       <Panel>
         <div className="grid gap-3 sm:grid-cols-2">
           {TEXT_FIELDS.map((field) => (
@@ -283,7 +375,7 @@ export function AdminSitePanel() {
       </Panel>
 
       {/* ---------------- BANNERS ---------------- */}
-      <SectionHeader index="04" title="HOME PAGE BANNERS" hint="any size · auto-fits the home page" />
+      <SectionHeader index="05" title="HOME PAGE BANNERS" hint="any size · auto-fits the home page" />
       <Panel>
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="space-y-2.5">
@@ -385,7 +477,7 @@ export function AdminSitePanel() {
       </Panel>
 
       {/* ---------------- COUPONS ---------------- */}
-      <SectionHeader index="05" title="FREE-SUBSCRIPTION COUPONS" hint="customers redeem on the Plan page" />
+      <SectionHeader index="06" title="FREE-SUBSCRIPTION COUPONS" hint="customers redeem on the Plan page" />
       <Panel>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
