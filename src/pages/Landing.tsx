@@ -321,18 +321,6 @@ export default function Landing() {
 
             {/* the coach hero artwork */}
             <div className="relative h-[320px] sm:h-[440px]">
-              <div className="glass absolute left-0 top-8 z-10 max-w-[210px] rounded-2xl border border-primary/35 p-3.5 shadow-[0_0_24px_rgba(163,230,53,0.18)] sm:left-2">
-                <p className="font-display text-sm font-semibold leading-snug">
-                  Hey!
-                  <br />
-                  I&apos;m your AI Fitness Coach.
-                </p>
-                <span className="mt-2 flex h-3 items-end gap-[3px]" aria-hidden>
-                  {[10, 16, 8, 14, 11].map((h, i) => (
-                    <span key={i} className="wave-bar" style={{ height: h, animationDelay: `${i * 0.12}s` }} />
-                  ))}
-                </span>
-              </div>
               <AIFitnessRobot
                 state="idle"
                 photoSrc={heroImage ?? "/robot-hero.png"}
