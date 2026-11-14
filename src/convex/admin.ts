@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
@@ -16,6 +16,33 @@ async function requireAdminMutation(ctx: QueryCtx | MutationCtx) {
   if (!user || user.role !== "admin" || user.disabled) throw new Error("Admin access required");
   return user;
 }
+
+/**
+ * One-time owner bootstrap — run from the CLI only (`convex run`), never from
+ * the client. Grants the admin role to a verified account so the console can
+ * be opened the first time.
+ */
+export const grantAdminByUserId = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("No account found for that id");
+    await ctx.db.patch(user._id, { role: "admin", disabled: false });
+    return { userId: user._id, email: user.email ?? null, role: "admin" };
+  },
+});
+
+export const grantAdminByEmail = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    const users = await ctx.db.query("users").collect();
+    const match = users.find((u) => (u.email ?? "").toLowerCase() === email);
+    if (!match) throw new Error(`No account found for ${email}`);
+    await ctx.db.patch(match._id, { role: "admin", disabled: false });
+    return { userId: match._id, email: match.email ?? email, role: "admin" };
+  },
+});
 
 /* ------------------------------------------------------------------ */
 /* Dashboard metrics — real aggregates, no fabricated numbers           */
