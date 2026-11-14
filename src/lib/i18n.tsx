@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useSiteCustomization } from "@/lib/site-theme";
 
 /* ------------------------------------------------------------------ */
 /* Centralized i18n — English (default) · हिन्दी · Hinglish            */
@@ -489,6 +490,7 @@ function isLanguage(value: unknown): value is Language {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
+  const { textOverrides } = useSiteCustomization();
   const [localLanguage, setLocalLanguage] = useState<Language>(() => readStored() ?? DEFAULT_LANGUAGE);
   const [userTouched, setUserTouched] = useState(false);
   const serverLanguage = useQuery(
@@ -523,11 +525,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>) => {
-      const raw = DICTIONARIES[language]?.[key] ?? en[key] ?? key;
+      // Admin-edited copy (site text overrides) wins over the dictionary — it is
+      // deliberate, human-authored replacement text.
+      const raw = textOverrides[key] ?? DICTIONARIES[language]?.[key] ?? en[key] ?? key;
       if (!vars) return raw;
       return raw.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
     },
-    [language],
+    [language, textOverrides],
   );
 
   const locale = language === "hi" ? "hi-IN" : "en-IN";

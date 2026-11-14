@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
+import { useSiteCustomization } from "@/lib/site-theme";
 import { LanguageSelector } from "@/components/language-selector";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
 import { CoachAvatar } from "@/components/coach-avatar";
@@ -159,6 +160,7 @@ function Stars({ count }: { count: number }) {
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
   const { t } = useI18n();
+  const { banners } = useSiteCustomization();
   const primaryTo = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
   const primaryLabel = isAuthenticated ? t("hero.openCenter") : t("hero.getStarted");
 
@@ -216,6 +218,37 @@ export default function Landing() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 sm:px-6">
+        {/* ================= ADMIN BANNERS ================= */}
+        {banners.length > 0 && (
+          <div className="mt-6 space-y-3">
+            {banners.map((banner) => {
+              // Any banner size works: the image scales to the container width
+              // and keeps its own aspect ratio (never cropped or distorted).
+              const image = (
+                <img
+                  src={banner.imageDataUrl}
+                  alt={banner.title ?? "Promotional banner"}
+                  className="h-auto max-h-[70vh] w-full rounded-2xl border border-border object-contain"
+                  draggable={false}
+                />
+              );
+              return banner.linkUrl ? (
+                <a
+                  key={banner._id}
+                  href={banner.linkUrl}
+                  target={banner.linkUrl.startsWith("http") ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="block transition-opacity hover:opacity-95"
+                >
+                  {image}
+                </a>
+              ) : (
+                <div key={banner._id}>{image}</div>
+              );
+            })}
+          </div>
+        )}
+
         {/* ================= HERO ================= */}
         <section className="neon-glow relative mt-6 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-br from-[#0d130c] via-[#0a0e0a] to-[#070a07]">
           <div

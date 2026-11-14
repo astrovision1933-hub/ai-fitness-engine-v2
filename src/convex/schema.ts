@@ -829,6 +829,31 @@ const schema = defineSchema(
       createdAt: v.number(),
     }).index("by_name", ["name"]).index("by_created", ["createdAt"]),
 
+    // Site-wide promotional banners shown on the public home page. Images are
+    // stored as downscaled data URLs (same private approach as physique photos).
+    siteBanners: defineTable({
+      imageDataUrl: v.string(),
+      linkUrl: v.optional(v.string()),
+      title: v.optional(v.string()),
+      isActive: v.boolean(),
+      order: v.number(),
+      createdAt: v.number(),
+      createdBy: v.optional(v.id("users")),
+    }).index("by_active", ["isActive"]),
+
+    // Admin-created promo codes that grant a paid plan for free.
+    coupons: defineTable({
+      code: v.string(),
+      planSlug: v.string(), // premium | pro_coach | competition
+      durationDays: v.number(), // 0 = no expiry
+      maxUses: v.number(), // 0 = unlimited
+      usedCount: v.number(),
+      isActive: v.boolean(),
+      note: v.optional(v.string()),
+      createdAt: v.number(),
+      createdBy: v.optional(v.id("users")),
+    }).index("by_code", ["code"]),
+
     // Admin app settings + feature flags. Safety-critical keys are protected
     // in admin.ts and can never be disabled.
     appSettings: defineTable({

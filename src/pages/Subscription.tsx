@@ -26,25 +26,6 @@ type Plan = {
   isActive: boolean;
 };
 
-type Entitlement = {
-  planSlug: string;
-  planName: string;
-  status: string;
-  aiMessageLimit: number;
-  reportsPerMonth: number;
-  competitionAccess: boolean;
-  voiceAccess: boolean;
-  advancedAnalytics: boolean;
-  trialEndsAt: number | null;
-} | null;
-
-type Purchase = {
-  _id: string;
-  productId: string;
-  verificationStatus: string;
-  createdAt: number;
-};
-
 const FEATURE_ROWS: Array<{ key: keyof Plan; label: string }> = [
   { key: "aiMessageLimit", label: "AI messages / day" },
   { key: "botLimit", label: "AI coach bots" },
@@ -92,6 +73,9 @@ export default function Subscription() {
   const [token, setToken] = useState("");
   const [productId, setProductId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
+  const redeemCoupon = useMutation(api.site.redeemCoupon);
 
   async function handleStartTrial() {
     setBusy(true);
@@ -179,7 +163,51 @@ export default function Subscription() {
           </div>
         </Panel>
 
-        <SectionHeader index="01" title="AI USAGE TODAY" hint="per-plan limits, admin-configurable" />
+        <SectionHeader index="01" title="REDEEM A COUPON" hint="admin-issued promo codes unlock a paid plan free" />
+        <Panel>
+          <form
+            className="flex flex-col gap-2 sm:flex-row"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const code = couponCode.trim();
+              if (!code) return;
+              setRedeeming(true);
+              try {
+                const res = await redeemCoupon({ code });
+                setCouponCode("");
+                toast.success(`Coupon applied — ${res.planSlug} unlocked`, {
+                  description:
+                    res.durationDays > 0
+                      ? `Valid for ${res.durationDays} days.`
+                      : "No expiry — enjoy full access.",
+                });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Could not redeem this coupon");
+              } finally {
+                setRedeeming(false);
+              }
+            }}
+          >
+            <Input
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="Enter coupon code (e.g. LAUNCH2026)"
+              className="rounded-none font-mono uppercase"
+            />
+            <Button
+              type="submit"
+              disabled={redeeming || !couponCode.trim()}
+              className="rounded-none text-[10px] font-bold uppercase tracking-[0.14em]"
+            >
+              {redeeming ? "APPLYING…" : "APPLY COUPON"}
+            </Button>
+          </form>
+          <p className="mt-2 text-[10px] leading-4 text-muted-foreground">
+            A valid coupon activates the plan instantly — no payment required. Existing paid plans are never downgraded.
+          </p>
+        </Panel>
+
+        <SectionHeader index="02" title="AI USAGE TODAY" hint="per-plan limits, admin-configurable" />
         <Panel>
           {usage ? (
             <div className="space-y-2">
@@ -200,7 +228,7 @@ export default function Subscription() {
           )}
         </Panel>
 
-        <SectionHeader index="02" title="PLANS" hint="admin-configured pricing and features" />
+        <SectionHeader index="03" title="PLANS" hint="admin-configured pricing and features" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {activePlans.map((p) => {
             const current = ent !== null && ent.planSlug === p.slug;
@@ -282,7 +310,7 @@ export default function Subscription() {
           )}
         </Panel>
 
-        <SectionHeader index="03" title="MANAGE" hint="trial, auto-renew, purchases" />
+        <SectionHeader index="04" title="MANAGE" hint="trial, auto-renew, purchases" />
         <div className="grid gap-4 lg:grid-cols-2">
           <Panel title="CURRENT SUBSCRIPTION">
             {sub !== null && sub.subscription !== null ? (

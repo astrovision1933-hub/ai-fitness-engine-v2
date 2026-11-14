@@ -192,29 +192,29 @@
     background-size: 24px 24px;
   }
 
-  /* dark translucent glass panel */
+  /* translucent glass panel — colours follow the active site theme */
   .glass {
-    background: rgba(13, 18, 13, 0.66);
+    background: color-mix(in srgb, var(--card) 78%, transparent);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(233, 242, 228, 0.09);
+    border: 1px solid color-mix(in srgb, var(--foreground) 10%, transparent);
   }
   .glass-soft {
-    background: rgba(16, 22, 15, 0.45);
+    background: color-mix(in srgb, var(--secondary) 60%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(233, 242, 228, 0.07);
+    border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
   }
 
   /* neon text + glows */
   .neon-text {
     color: var(--terminal-green-bright);
-    text-shadow: 0 0 22px rgba(163, 230, 53, 0.45);
+    text-shadow: 0 0 22px color-mix(in srgb, var(--primary) 45%, transparent);
   }
   .neon-glow {
     box-shadow:
-      0 0 0 1px rgba(163, 230, 53, 0.25),
-      0 0 28px rgba(163, 230, 53, 0.16),
+      0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent),
+      0 0 28px color-mix(in srgb, var(--primary) 17%, transparent),
       0 8px 32px rgba(0, 0, 0, 0.5);
   }
   .gold-glow {
@@ -228,11 +228,11 @@
   .bg-atmo {
     background-color: var(--background);
     background-image:
-      radial-gradient(900px 480px at 12% -8%, rgba(163, 230, 53, 0.075), transparent 62%),
-      radial-gradient(760px 420px at 96% 4%, rgba(103, 232, 249, 0.05), transparent 60%),
-      radial-gradient(680px 500px at 55% 112%, rgba(52, 211, 153, 0.05), transparent 62%),
-      linear-gradient(to right, rgba(233, 242, 228, 0.032) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(233, 242, 228, 0.032) 1px, transparent 1px);
+      radial-gradient(900px 480px at 12% -8%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 62%),
+      radial-gradient(760px 420px at 96% 4%, color-mix(in srgb, var(--terminal-cyan) 6%, transparent), transparent 60%),
+      radial-gradient(680px 500px at 55% 112%, color-mix(in srgb, var(--primary) 6%, transparent), transparent 62%),
+      linear-gradient(to right, color-mix(in srgb, var(--foreground) 3.5%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 3.5%, transparent) 1px, transparent 1px);
     background-size:
       100% 100%,
       100% 100%,
@@ -398,6 +398,34 @@
 }
 .bg-\[\#e8f4f6\] {
   background-color: rgba(103, 232, 249, 0.1);
+}
+
+/* ------------------------------------------------------------------ */
+/* Theme coupling for legacy hard-coded accent utilities.              */
+/* The admin-selected theme sets --primary/--card on :root, so these    */
+/* formerly lime-only accents now follow every preset.                  */
+/* ------------------------------------------------------------------ */
+.text-\[\#dcff8a\] {
+  color: var(--terminal-green-bright);
+}
+.bg-\[\#eef3ea\] {
+  background-color: color-mix(in srgb, var(--primary) 16%, var(--card));
+}
+.from-\[\#a3e635\] {
+  --tw-gradient-from: var(--primary);
+}
+.to-\[\#65d413\] {
+  --tw-gradient-to: var(--terminal-green-bright);
+}
+.via-\[\#a3e635\] {
+  --tw-gradient-via: var(--primary);
+}
+.from-\[\#d0ff67\] {
+  --tw-gradient-from: var(--terminal-green-bright);
+}
+.bg-atmo, body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 /* accessibility: honour reduced motion globally */

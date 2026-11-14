@@ -8,6 +8,7 @@ import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import { LanguageProvider } from "@/lib/i18n";
+import { SiteThemeProvider } from "@/lib/site-theme";
 import "./index.css";
 
 // Lazy load route components for better code splitting.
@@ -159,6 +160,7 @@ createRoot(document.getElementById("root")!).render(
         <VlyToolbar />
       </ToolbarErrorBoundary>
       <ConvexAuthProvider client={convex}>
+        <SiteThemeProvider>
         <LanguageProvider>
         <BrowserRouter>
           <RouteSyncer />
@@ -318,6 +320,7 @@ createRoot(document.getElementById("root")!).render(
           </Suspense>
         </BrowserRouter>
         </LanguageProvider>
+        </SiteThemeProvider>
         <Toaster />
       </ConvexAuthProvider>
     </RootErrorBoundary>

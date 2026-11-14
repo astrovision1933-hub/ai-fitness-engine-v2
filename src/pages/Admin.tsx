@@ -1,34 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { AppShell } from "@/components/AppShell";
-import { Panel, TerminalBadge, StatChip, SectionHeader, StatusDot, AsciiBar } from "@/components/terminal";
+import { AdminSitePanel } from "@/components/admin-site-panel";
+import { Panel, TerminalBadge, StatChip, StatusDot, AsciiBar } from "@/components/terminal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { GOAL_LABELS, CATEGORY_LABELS, KNOWLEDGE_CATEGORIES } from "@/lib/labels";
-
-type Metrics = {
-  totalUsers: number;
-  newUsers7d: number;
-  activeUsers: number;
-  coachingUsers: number;
-  freeUsers: number;
-  premiumUsers: number;
-  planCounts: Array<{ slug: string; count: number }>;
-  aiMessagesToday: number;
-  productInquiries: number;
-  productRecommendations: number;
-  highIntentUsers: number;
-  popularGoals: Array<{ goal: string; count: number }>;
-  popularQuestions: Array<{ intent: string; count: number }>;
-  retention: number;
-  trialCount: number;
-};
 
 type AdminUser = {
   _id: Id<"users">;
@@ -106,16 +89,9 @@ type PlanRow = {
 type AuditRow = { _id: Id<"auditLogs">; userId?: Id<"users">; action: string; detail?: string; createdAt: number };
 type ConvoMeta = { _id: Id<"conversations">; persona: string; title?: string; lastMessageAt: number };
 type SettingRow = { key: string; value: string; locked: boolean };
-type SafetyOverview = {
-  flaggedTotal: number;
-  flagged7d: number;
-  byIntent: Array<{ intent: string; count: number }>;
-  blocksByCategory: Array<{ category: string; count: number }>;
-  recent: Array<{ _id: Id<"conversationMessages">; intent: string | null; createdAt: number }>;
-};
-
 const TABS = [
   "DASHBOARD",
+  "SITE",
   "USERS",
   "COACHES",
   "CONVERSATIONS",
@@ -242,6 +218,8 @@ export default function Admin() {
             </button>
           ))}
         </div>
+
+        {tab === "SITE" && <AdminSitePanel />}
 
         {tab === "DASHBOARD" && (
           <>
