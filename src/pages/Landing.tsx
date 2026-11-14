@@ -1,4 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSelector } from "@/components/language-selector";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
 import { CoachAvatar } from "@/components/coach-avatar";
 import { coachAccent, coachCardGradient } from "@/lib/coach-media";
@@ -156,8 +158,9 @@ function Stars({ count }: { count: number }) {
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { t } = useI18n();
   const primaryTo = isAuthenticated ? "/dashboard" : "/auth?returnTo=/dashboard";
-  const primaryLabel = isAuthenticated ? "Open Command Center" : "Get Started";
+  const primaryLabel = isAuthenticated ? t("hero.openCenter") : t("hero.getStarted");
 
   return (
     <div className="min-h-screen bg-atmo">
@@ -184,12 +187,13 @@ export default function Landing() {
             </span>
           </div>
           <nav className="flex items-center gap-2.5">
+            <LanguageSelector />
             {!isLoading && isAuthenticated ? (
               <Button
                 asChild
                 className="h-9 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_20px_var(--neon-glow)] hover:brightness-110"
               >
-                <Link to="/dashboard">Open App</Link>
+                <Link to="/dashboard">{t("hero.openApp")}</Link>
               </Button>
             ) : (
               <>
@@ -197,13 +201,13 @@ export default function Landing() {
                   to="/auth"
                   className="glass-soft lift rounded-xl px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-foreground hover:border-primary/30 hover:text-[#dcff8a]"
                 >
-                  Sign In
+                  {t("hero.signIn")}
                 </Link>
                 <Button
                   asChild
                   className="h-9 rounded-xl bg-primary px-4 text-xs font-bold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_20px_var(--neon-glow)] hover:brightness-110"
                 >
-                  <Link to="/auth?returnTo=/dashboard">Start Free</Link>
+                  <Link to="/auth?returnTo=/dashboard">{t("hero.startFree")}</Link>
                 </Button>
               </>
             )}
@@ -226,18 +230,17 @@ export default function Landing() {
             <div>
               <p className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#dcff8a]">
                 <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden />
-                System Online — 24/7 Coaching Engine
+                {t("hero.badge")}
               </p>
               <h1 className="font-display mt-5 text-4xl font-bold leading-[1.03] sm:text-6xl">
-                YOUR COACH
+                {t("hero.line1").toUpperCase()}
                 <br />
-                <span className="neon-text">DOESN&apos;T SLEEP.</span>
+                <span className="neon-text">{t("hero.line2").toUpperCase()}</span>
                 <br />
-                NEITHER DOES THE ENGINE.
+                {t("hero.line3").toUpperCase()}
               </h1>
               <p className="mt-5 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
-                AI Fitness Engine builds a persistent model of you — body, schedule, diet, equipment and
-                goals — and helps you train, track and transform every single day.
+                {t("hero.body")}
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
                 <Button

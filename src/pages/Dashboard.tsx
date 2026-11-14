@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/lib/i18n";
 import { AppShell } from "@/components/AppShell";
 import { Panel, StatChip, TerminalBadge, AsciiBar, StatusDot, SectionHeader } from "@/components/terminal";
 import { AIFitnessRobot } from "@/components/ai-fitness-robot";
@@ -164,6 +165,7 @@ function HudPanel({
 
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const profile = useQuery(api.profile.getProfile);
@@ -572,7 +574,7 @@ export default function Dashboard() {
         <div className="grid gap-4 lg:grid-cols-3">
           {/* today's workout — the highlighted NEXT MOVE for paid users */}
           <Panel
-            title="YOUR NEXT MOVE"
+            title={t("dash.nextMove").toUpperCase()}
             subtitle="follow this step — engine rotates automatically"
             className={cn(
               "lg:col-span-2",
@@ -625,7 +627,7 @@ export default function Dashboard() {
           </Panel>
 
           {/* goal progress */}
-          <Panel title="GOAL PROGRESS">
+          <Panel title={t("dash.goalProgress").toUpperCase()}>
             <div className="space-y-3">
               <StatChip label="ADHERENCE (LAST SESSIONS)" value={`${Math.round(adherence * 100)}%`} tone="ok" />
               <div className="space-y-1 text-xs text-muted-foreground">
@@ -655,7 +657,7 @@ export default function Dashboard() {
         </div>
 
         {/* coach message */}
-        <Panel title="COACH MESSAGE" subtitle="contextual — built from your live profile data">
+        <Panel title={t("dash.coachMessage").toUpperCase()} subtitle="contextual — built from your live profile data">
           <p className="text-sm leading-6">{coachLine}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
@@ -674,7 +676,7 @@ export default function Dashboard() {
         </Panel>
 
         {/* quick actions */}
-        <Panel title="QUICK ACTIONS">
+        <Panel title={t("dash.quickActions").toUpperCase()}>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
             {QUICK_ACTIONS.map((action) => (
               <Link
@@ -693,7 +695,7 @@ export default function Dashboard() {
 
         <div className="grid gap-4 lg:grid-cols-2">
           {/* recent activity */}
-          <Panel title="RECENT ACTIVITY">
+          <Panel title={t("dash.recentActivity").toUpperCase()}>
             {sessions && sessions.length > 0 ? (
               <div className="space-y-1.5">
                 {sessions.slice(0, 5).map((s) => (
@@ -718,7 +720,7 @@ export default function Dashboard() {
           </Panel>
 
           {/* notifications + memory */}
-          <Panel title="EVENT MEMORY / NOTIFICATIONS">
+          <Panel title={t("dash.memory").toUpperCase()}>
             <div className="space-y-1.5">
               {(notifications ?? []).slice(0, 3).map((n) => (
                 <div key={n._id} className="border-b border-border/60 py-1.5 text-xs last:border-0">
@@ -739,7 +741,7 @@ export default function Dashboard() {
           </Panel>
         </div>
 
-        <SectionHeader index="→" title="MODULE MAP" hint="all 12 modules live" />
+        <SectionHeader index="→" title={t("dash.moduleMap").toUpperCase()} hint="all 12 modules live" />
         <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
           CORE · COACH · WORKOUT · NUTRITION · PROGRESS · CHECK-IN · GOALS · BODYBUILDING · SUPPLEMENTS · PRODUCTS · REPORTS · SETTINGS &amp; PLAN
         </p>

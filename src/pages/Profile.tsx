@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/lib/i18n";
 import { Panel, FieldRow, TerminalBadge, StatChip } from "@/components/terminal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ const GOALS = Object.entries(GOAL_LABELS).map(([value, label]) => ({ value, labe
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const profile = useQuery(api.profile.getProfile);
   const goal = useQuery(api.profile.getActiveGoal);
@@ -144,8 +146,8 @@ export default function Profile() {
       <div className="space-y-4">
         {/* identity */}
         <Panel
-          title="FITNESS PROFILE"
-          subtitle="persistent structured data — the engine's model of you"
+          title={t("profile.title").toUpperCase()}
+          subtitle={t("profile.subtitle")}
           right={<TerminalBadge tone={profile.onboardingComplete ? "ok" : "warn"}>
             {profile.onboardingComplete ? "COMPLETE" : "INCOMPLETE"}
           </TerminalBadge>}
@@ -199,20 +201,20 @@ export default function Profile() {
 
         {/* user history */}
         <Panel
-          title="USER HISTORY"
-          subtitle="one merged timeline — workouts, check-ins, meals, activity, milestones, reviews and reports"
+          title={t("profile.history").toUpperCase()}
+          subtitle={t("profile.historySubtitle")}
           right={
             isAdmin ? (
               <div className="flex gap-1.5">
                 <Button size="sm" variant={historyTab === "mine" ? "default" : "outline"}
                   className="rounded-none text-[10px] uppercase tracking-[0.12em]"
                   onClick={() => { setHistoryTab("mine"); setClientId(null); }}>
-                  MY HISTORY
+                  {t("profile.myHistory").toUpperCase()}
                 </Button>
                 <Button size="sm" variant={historyTab === "client" ? "default" : "outline"}
                   className="rounded-none text-[10px] uppercase tracking-[0.12em]"
                   onClick={() => setHistoryTab("client")}>
-                  CLIENT LOOKUP
+                  {t("profile.clientLookup").toUpperCase()}
                 </Button>
               </div>
             ) : <span />
@@ -221,7 +223,7 @@ export default function Profile() {
           {isAdmin && historyTab === "client" && (
             <div className="mb-3 space-y-2 border-b border-border pb-3">
               <Input
-                placeholder="search client name or email…"
+                placeholder={t("profile.searchClient")}
                 value={clientSearch}
                 onChange={(e) => setClientSearch(e.target.value)}
                 className="rounded-none"
@@ -254,9 +256,7 @@ export default function Profile() {
           )}
 
           {historyTab === "client" && isAdmin && !clientId && (
-            <p className="text-xs text-muted-foreground">
-              Pick a client above to pull their full activity history.
-            </p>
+            <p className="text-xs text-muted-foreground">{t("profile.pickClient")}</p>
           )}
 
           {activeHistory === undefined && (
@@ -267,9 +267,7 @@ export default function Profile() {
             <div className="max-h-96 space-y-1 overflow-y-auto">
               {activeHistory.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  {historyTab === "mine"
-                    ? "No history yet — it fills up as you train, eat and check in."
-                    : "This client has no activity records yet."}
+                  {historyTab === "mine" ? t("profile.noHistory") : t("profile.clientNoHistory")}
                 </p>
               )}
               {activeHistory.map((item, i) => (
@@ -298,7 +296,7 @@ export default function Profile() {
 
         {/* physique tracker */}
         <Panel
-          title="PHYSIQUE TRACKER"
+          title={t("profile.physiqueTracker").toUpperCase()}
           subtitle="optional photos, measurements, fitness stage and transformation timeline"
           right={
             <Button size="sm" variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.12em]" onClick={() => navigate("/physique")}>
@@ -328,7 +326,7 @@ export default function Profile() {
 
         {/* goal + progress */}
         <div className="grid gap-4 lg:grid-cols-3">
-          <Panel title="CURRENT GOAL" className="lg:col-span-2" right={
+          <Panel title={t("profile.currentGoal").toUpperCase()} className="lg:col-span-2" right={
             <Button size="sm" variant="outline" className="rounded-none text-[10px] uppercase tracking-[0.12em]" onClick={() => {
               // Prefill the edit form at open time — no sync-on-render effect.
               if (!goalOpen) {
@@ -391,7 +389,7 @@ export default function Profile() {
             )}
           </Panel>
 
-          <Panel title="MEASUREMENTS">
+          <Panel title={t("profile.measurements").toUpperCase()}>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
                 <StatChip label="LATEST" value={latest?.weightKg ? `${latest.weightKg}kg` : "—"} />
@@ -445,7 +443,7 @@ export default function Profile() {
 
         {/* assessment */}
         <Panel
-          title="FITNESS ASSESSMENT"
+          title={t("profile.assessment").toUpperCase()}
           subtitle={assessment ? `generated ${new Date(assessment.createdAt).toLocaleDateString()}` : "not generated yet"}
         >
           {assessment ? (
@@ -488,7 +486,7 @@ export default function Profile() {
 
         {/* coach + preferences */}
         <div className="grid gap-4 lg:grid-cols-2">
-          <Panel title="YOUR COACH">
+          <Panel title={t("profile.yourCoach").toUpperCase()}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {(personas ?? []).map((p) => (
                 <button
@@ -534,7 +532,7 @@ export default function Profile() {
             </div>
           </Panel>
 
-          <Panel title="AI MEMORY — WHAT THE ENGINE REMEMBERS">
+          <Panel title={t("profile.memory").toUpperCase()}>
             <div className="max-h-64 space-y-1 overflow-y-auto">
               {(memory ?? []).map((m) => (
                 <div key={m._id} className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1.5 text-xs last:border-0">

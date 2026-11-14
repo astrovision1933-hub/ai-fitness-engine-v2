@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { normalizeLanguage } from "./services/language";
 
 const DEFAULT_SETTINGS = {
   notifications: {
@@ -103,6 +104,50 @@ export const updateSettings = mutation({
       ...DEFAULT_SETTINGS,
       ...patch,
     } as never);
+  },
+});
+
+/* ------------------------------------------------------------------ */
+/* Language preference (i18n)                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Stored on userPreferences so the AI pipeline can read the same value.
+ * Existing rows simply have no preferredLanguage → English default.
+ */
+export const getMyLanguage = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const prefs = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    return normalizeLanguage(prefs?.preferredLanguage);
+  },
+});
+
+export const setMyLanguage = mutation({
+  args: { language: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const language = normalizeLanguage(args.language);
+    const existing = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { preferredLanguage: language });
+      return language;
+    }
+    await ctx.db.insert("userPreferences", {
+      userId,
+      units: "metric",
+      preferredLanguage: language,
+    });
+    return language;
   },
 });
 

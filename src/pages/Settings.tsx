@@ -3,6 +3,8 @@ import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
+import { LanguageSelector } from "@/components/language-selector";
+import { useI18n } from "@/lib/i18n";
 import { Panel, TerminalBadge, SectionHeader, StatusDot } from "@/components/terminal";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -29,12 +31,6 @@ type NotificationsPref = {
 };
 type VoicePref = { inputEnabled: boolean; outputEnabled: boolean };
 type PrivacyPref = { consentAnalytics: boolean; allowCoachMemory: boolean };
-type MySettings = {
-  _id: string;
-  notifications: NotificationsPref;
-  voice: VoicePref;
-  privacy: PrivacyPref;
-};
 
 const NOTIFICATION_META: Array<{ key: keyof NotificationsPref; label: string; hint: string }> = [
   { key: "workoutReminders", label: "WORKOUT REMINDERS", hint: "nudge when a session is scheduled" },
@@ -49,6 +45,7 @@ const NOTIFICATION_META: Array<{ key: keyof NotificationsPref; label: string; hi
 export default function Settings() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useI18n();
   const profile = useQuery(api.profile.getProfile);
   const settings = useQuery(api.settings.getMySettings);
   const memory = useQuery(api.settings.listMyMemory);
@@ -77,8 +74,7 @@ export default function Settings() {
   const premium =
     ent !== undefined &&
     ent !== null &&
-    (ent.planSlug !== "free" ||
-      (ent.status === "trialing" && ent.trialEndsAt !== null && ent.trialEndsAt > Date.now()));
+    (ent.planSlug !== "free" || ent.trialEndsAt !== null);
 
   function toggleNotif(key: keyof NotificationsPref) {
     if (!settings) return;
@@ -170,6 +166,14 @@ export default function Settings() {
             </div>
             <TerminalBadge tone="ok">USER CONTROLLED</TerminalBadge>
           </div>
+        </Panel>
+
+        <SectionHeader index="00" title={t("settings.language").toUpperCase()} hint={t("settings.languageHint")} />
+        <Panel>
+          <LanguageSelector variant="full" />
+          <p className="mt-3 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {user ? t("lang.synced") : t("lang.guest")}
+          </p>
         </Panel>
 
         <SectionHeader index="01" title="NOTIFICATIONS" hint="you control every channel" />

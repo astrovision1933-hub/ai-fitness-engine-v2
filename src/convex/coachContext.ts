@@ -136,11 +136,18 @@ export const getContextBundle = internalQuery({
     }
     if (!summaryLines.length) summaryLines.push("No profile data yet — user may still be onboarding.");
 
+    // Language preference lives on userPreferences (one row per user).
+    const prefs = await ctx.db
+      .query("userPreferences")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
     return {
       summary: summaryLines.join("\n"),
       persona: persona
         ? { name: persona.name, role: persona.role, systemInstructions: persona.systemInstructions }
         : null,
+      preferredLanguage: prefs?.preferredLanguage ?? "en",
       recentMessages: recentMessages.map((m) => ({ role: m.role, content: m.content })),
     };
   },

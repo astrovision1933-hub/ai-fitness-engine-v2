@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionHeader, TerminalBadge } from "@/components/terminal";
 import { CoachWelcomeScreen } from "@/components/coach-welcome-screen";
+import { LanguageSelector } from "@/components/language-selector";
+import { useI18n } from "@/lib/i18n";
 import { PhysiqueScan } from "@/components/physique-scan";
 import { fileToDownscaledDataUrl } from "@/lib/photo";
 import { PHYSIQUE_CATEGORY_LABELS } from "@/lib/physique";
@@ -174,6 +176,7 @@ function ToggleChips({
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [state, setState] = useState<OnboardingState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
@@ -418,6 +421,11 @@ export default function Onboarding() {
           <div className="space-y-6 p-5">
             {step === 0 && (
               <section>
+                <SectionHeader index="00" title={t("onboarding.languageTitle").toUpperCase()} hint={t("onboarding.languageHint")} />
+                <div className="mt-2 border border-border bg-secondary/40 p-3">
+                  <LanguageSelector variant="full" />
+                </div>
+                <div className="mt-6" />
                 <SectionHeader index="01" title="BASIC PROFILE" hint="who is the engine coaching?" />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">

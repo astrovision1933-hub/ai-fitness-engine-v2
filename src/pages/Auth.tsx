@@ -6,6 +6,8 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSelector } from "@/components/language-selector";
 import { StatusDot } from "@/components/terminal";
 import { ArrowRight, Loader2, UserX } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
@@ -24,6 +26,7 @@ function resolveRedirectAfterAuth(returnTo: string | null, fallback = "/dashboar
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = resolveRedirectAfterAuth(
@@ -53,9 +56,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     } catch (error) {
       console.error("Email sign-in error:", error);
       setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to send verification code. Please try again.",
+        error instanceof Error ? error.message : t("auth.sendError"),
       );
       setIsLoading(false);
     }
@@ -71,7 +72,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       navigate(redirect);
     } catch (error) {
       console.error("OTP verification error:", error);
-      setError("The verification code you entered is incorrect.");
+      setError(t("auth.otpError"));
       setIsLoading(false);
       setOtp("");
     }
@@ -105,8 +106,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               AI Fitness Engine
             </span>
           </Link>
-          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            <StatusDot tone="ok" /> SECURE TERMINAL
+          <span className="flex items-center gap-2">
+            <LanguageSelector />
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <StatusDot tone="ok" /> {t("auth.secureTerminal").toUpperCase()}
+            </span>
           </span>
         </div>
       </header>
@@ -126,20 +130,19 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
             {step === "signIn" ? (
               <form onSubmit={handleEmailSubmit} className="p-5">
                 <h1 className="text-xl font-bold tracking-tight">
-                  INITIALIZE SESSION
+                  {t("auth.initialize").toUpperCase()}
                 </h1>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Enter your email to log in or sign up. New accounts are created
-                  automatically — email verification happens via the code.
+                  {t("auth.tagline")}
                 </p>
 
                 <label className="mt-6 block text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  EMAIL
+                  {t("auth.email").toUpperCase()}
                 </label>
                 <div className="mt-1.5 flex gap-2">
                   <Input
                     name="email"
-                    placeholder="name@example.com"
+                    placeholder={t("auth.emailPlaceholder")}
                     type="email"
                     required
                     disabled={isLoading}
@@ -174,7 +177,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   disabled={isLoading}
                 >
                   <UserX className="mr-2 h-4 w-4" />
-                  CONTINUE AS GUEST
+                  {t("auth.guest").toUpperCase()}
                 </Button>
 
                 <p className="mt-5 border-t border-border pt-3 text-[10px] leading-4 text-muted-foreground">
@@ -185,9 +188,10 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               </form>
             ) : (
               <form onSubmit={handleOtpSubmit} className="p-5">
-                <h1 className="text-xl font-bold tracking-tight">CHECK YOUR INBOX</h1>
+                <h1 className="text-xl font-bold tracking-tight">{t("auth.checkInbox").toUpperCase()}</h1>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  Verification code sent to <span className="text-foreground">{step.email}</span>
+                  {t("auth.codeSent")}{" "}
+                  <span className="text-foreground">{step.email}</span>
                 </p>
 
                 <input type="hidden" name="email" value={step.email} />
@@ -215,10 +219,10 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      VERIFYING…
+                      {t("auth.verifying").toUpperCase()}
                     </>
                   ) : (
-                    <>VERIFY CODE →</>
+                    <>{t("auth.verify").toUpperCase()}</>
                   )}
                 </Button>
 
@@ -230,7 +234,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     onClick={() => setStep("signIn")}
                     disabled={isLoading}
                   >
-                    ← DIFFERENT EMAIL
+                    {t("auth.differentEmail").toUpperCase()}
                   </Button>
                   <Button
                     type="button"
@@ -239,7 +243,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     onClick={() => setStep("signIn")}
                     disabled={isLoading}
                   >
-                    RESEND
+                    {t("auth.resend").toUpperCase()}
                   </Button>
                 </div>
               </form>

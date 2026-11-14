@@ -11,27 +11,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { INTENT_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
+import { CoachMarkdown } from "@/components/markdown";
+import { useI18n } from "@/lib/i18n";
 import type { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { useVoiceCoach } from "@/hooks/use-voice-coach";
 
-const QUICK_ACTIONS = [
-  "Today's Workout",
-  "Create Workout",
-  "Analyze My Diet",
-  "My Progress",
-  "My Goal",
-  "Ask Coach",
+// Prompts stay in English so intent classification remains reliable; the reply
+// language comes from the user's stored preference (server-side instruction).
+const QUICK_ACTIONS: Array<{ labelKey: string; prompt: string }> = [
+  { labelKey: "coach.quick.today", prompt: "Show me today's workout and how to approach it." },
+  { labelKey: "coach.quick.create", prompt: "Create a workout for me based on my profile and equipment." },
+  { labelKey: "coach.quick.diet", prompt: "Analyze my diet based on my profile data." },
+  { labelKey: "coach.quick.progress", prompt: "Review my progress based on my logged workouts." },
+  { labelKey: "coach.quick.goal", prompt: "Assess my current goal and whether my plan matches it." },
+  { labelKey: "coach.quick.ask", prompt: "I have a training question." },
 ];
-
-const QUICK_PROMPTS: Record<string, string> = {
-  "Today's Workout": "Show me today's workout and how to approach it.",
-  "Create Workout": "Create a workout for me based on my profile and equipment.",
-  "Analyze My Diet": "Analyze my diet based on my profile data.",
-  "My Progress": "Review my progress based on my logged workouts.",
-  "My Goal": "Assess my current goal and whether my plan matches it.",
-  "Ask Coach": "I have a training question.",
-};
 
 export default function Coach() {
   const navigate = useNavigate();
@@ -57,6 +52,7 @@ export default function Coach() {
   const assignCoach = useMutation(api.coachJourney.assignCoach);
   const seedPersonas = useMutation(api.coachPersonas.seedPersonasPublic);
 
+  const { t, locale } = useI18n();
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [pendingReply, setPendingReply] = useState(false);
@@ -72,9 +68,12 @@ export default function Coach() {
   const { startListening, stopListening, speak, transcript, listening, speaking, error: voiceError, sttSupported } = voice;
   const wasPendingRef = useRef(false);
 
-  // Mic transcript flows into the composer.
+  // Mic transcript flows into the composer (deferred so the effect never
+  // triggers a synchronous cascading render).
   useEffect(() => {
-    if (transcript) setInput(transcript);
+    if (!transcript) return;
+    const frame = requestAnimationFrame(() => setInput(transcript));
+    return () => cancelAnimationFrame(frame);
   }, [transcript]);
 
   // Speak each new assistant reply once, when voice output is allowed.
@@ -97,7 +96,8 @@ export default function Coach() {
   useEffect(() => {
     if (conversationId || personas === undefined) return;
     if (latest) {
-      setConversationId(latest._id);
+      const id = latest._id;
+      queueMicrotask(() => setConversationId(id));
       return;
     }
     if (personas.length > 0 && profile) {
@@ -128,7 +128,8 @@ export default function Coach() {
   useEffect(() => {
     if (messages && conversationId) {
       const last = messages[messages.length - 1];
-      setPendingReply(last?.role === "user");
+      const pending = last?.role === "user";
+      queueMicrotask(() => setPendingReply(pending));
     }
   }, [messages, conversationId]);
 
@@ -143,7 +144,7 @@ export default function Coach() {
       setInput("");
     } catch (err) {
       console.error(err);
-      toast.error(err instanceof Error ? err.message : "Failed to send");
+      toast.error(err instanceof Error ? err.message : t("coach.failed"));
       setPendingReply(false);
     } finally {
       setSending(false);
@@ -194,25 +195,25 @@ export default function Coach() {
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
         {/* left rail: roster + history */}
         <div className="space-y-4">
-          <Panel title="COACH ROSTER">
+          <Panel title={t("coach.roster").toUpperCase()}>
             {personasData && (
               <div className="mb-2 flex items-center justify-between gap-2 border border-border bg-secondary/50 px-2 py-1.5">
                 <span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
                   {personasData.planName.toUpperCase()} · {personasData.personas.filter((p) => !p.locked).length}/
-                  {personasData.personas.length} BOTS
+                  {personasData.personas.length} {t("coach.bots").toUpperCase()}
                 </span>
                 {personasData.upgradeTo && (
                   <button
                     onClick={() => navigate("/subscription")}
                     className="rounded-full bg-gradient-to-r from-[#a3e635] to-[#65d413] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#0a1205] hover:brightness-110"
                   >
-                    UPGRADE +
+                    {t("coach.upgrade")}
                   </button>
                 )}
               </div>
             )}
             <div className="space-y-1.5">
-              {loading && <p className="text-xs text-muted-foreground">loading…</p>}
+              {loading && <p className="text-xs text-muted-foreground">{t("common.loading")}</p>}
               {personas?.map((p) => (
                 <button
                   key={p._id}
@@ -238,7 +239,7 @@ export default function Coach() {
                     <div className="min-w-0">
                       <div className="text-xs font-bold tracking-wide">{coachFullName(p.name)}</div>
                       <div className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                        {p.locked ? "LOCKED — upgrade to unlock" : p.role}
+                        {p.locked ? t("coach.locked") : p.role}
                       </div>
                     </div>
                   </div>
@@ -247,7 +248,7 @@ export default function Coach() {
             </div>
           </Panel>
 
-          <Panel title="SESSION HISTORY">
+          <Panel title={t("coach.history").toUpperCase()}>
             <div className="space-y-1">
               {(conversations ?? []).slice(0, 8).map((c) => (
                 <button
@@ -269,7 +270,7 @@ export default function Coach() {
                 </button>
               ))}
               {conversations?.length === 0 && (
-                <p className="text-xs text-muted-foreground">No sessions yet.</p>
+                <p className="text-xs text-muted-foreground">{t("coach.noSessions")}</p>
               )}
             </div>
           </Panel>
@@ -277,71 +278,106 @@ export default function Coach() {
 
         {/* chat column */}
         <Panel
-          title="AI COACH CHAT"
+          title={t("coach.title").toUpperCase()}
           subtitle={
             activePersona
-              ? `${coachFullName(activePersona.name)} · YOUR PERSONAL AI FITNESS COACH`
-              : "AI PERSONAS — NOT REAL HUMANS"
+              ? `${coachFullName(activePersona.name)} · ${t("coach.aiPersonas")}`
+              : t("coach.aiPersonas")
           }
           right={
             <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
               <StatusDot tone={pendingReply ? "warn" : "ok"} pulse={pendingReply} />
-              {pendingReply ? "COACH TYPING" : "READY"}
+              {pendingReply ? t("coach.typing") : t("coach.ready")}
             </span>
           }
           className="flex min-h-[70vh] flex-col"
         >
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto pr-1" style={{ maxHeight: "60vh" }}>
+          <div
+            ref={scrollRef}
+            className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden pr-1"
+            style={{ maxHeight: "62vh" }}
+          >
             {messages?.length === 0 && (
-              <div className="border border-border bg-secondary/50 p-4 text-sm leading-6">
-                <p className="font-semibold">
-                  {activePersona ? `${activePersona.name} here.` : "Coach here."}
-                </p>
-                {profile?.activeGoalId ? (
-                  <p className="mt-1 text-muted-foreground">
-                    Tell me how many days you can train this week and I'll structure your workout
-                    around your goal — or use a quick action below.
-                  </p>
-                ) : (
-                  <p className="mt-1 text-muted-foreground">
-                    Set your goal first and I'll structure your training around it.
-                  </p>
+              <div className="flex items-start gap-2.5">
+                {activePersona && (
+                  <CoachAvatar name={activePersona.name} accent={coachAccent(activePersona.name)} className="mt-0.5 size-8 shrink-0" />
                 )}
+                <div className="min-w-0 rounded-2xl rounded-tl-sm border border-border bg-secondary/60 p-4 text-sm leading-6">
+                  <p className="font-semibold">
+                    {activePersona ? `${coachFullName(activePersona.name)} ${t("coach.welcome")}` : `${t("nav.coach")}.`}
+                  </p>
+                  {profile?.activeGoalId ? (
+                    <p className="mt-1 text-muted-foreground">{t("coach.welcomeBody")}</p>
+                  ) : (
+                    <p className="mt-1 text-muted-foreground">{t("coach.setGoalFirst")}</p>
+                  )}
+                </div>
               </div>
             )}
 
-            {messages?.map((m) => (
-              <div key={m._id} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-                <div
-                  className={cn(
-                    "max-w-[85%] border px-3 py-2 text-sm leading-6",
-                    m.role === "user"
-                      ? "border-border bg-secondary"
-                      : m.safetyFlag
-                        ? "border-terminal-amber/50 bg-[#fdf3e7]"
-                        : "border-terminal-green/40 bg-[#eef3ea]",
+            {messages?.map((m) => {
+              const isUser = m.role === "user";
+              return (
+                <div key={m._id} className={cn("flex items-start gap-2", isUser ? "justify-end" : "justify-start")}>
+                  {!isUser && activePersona && (
+                    <CoachAvatar
+                      name={activePersona.name}
+                      accent={coachAccent(activePersona.name)}
+                      className="mt-0.5 size-8 shrink-0"
+                    />
                   )}
-                >
-                  <p className="whitespace-pre-wrap">{m.content}</p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
-                      {m.role === "user" ? "YOU" : activePersona?.name ?? "COACH"} ·{" "}
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                    {m.intent && (
-                      <TerminalBadge tone={m.safetyFlag ? "warn" : "ink"}>
-                        {INTENT_LABELS[m.intent] ?? m.intent}
-                      </TerminalBadge>
+                  <div className={cn("flex min-w-0 max-w-[85%] flex-col", isUser ? "items-end" : "items-start")}>
+                    {!isUser && (
+                      <span className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        {activePersona ? coachFullName(activePersona.name) : t("nav.coach")}
+                      </span>
                     )}
+                    <div
+                      className={cn(
+                        "min-w-0 max-w-full rounded-2xl border px-3.5 py-2.5 text-sm shadow-sm",
+                        isUser
+                          ? "rounded-tr-sm border-border bg-secondary"
+                          : m.safetyFlag
+                            ? "rounded-tl-sm border-terminal-amber/50 bg-[#fdf3e7]"
+                            : "rounded-tl-sm border-terminal-green/40 bg-[#eef3ea]",
+                      )}
+                    >
+                      {isUser ? (
+                        <p className="whitespace-pre-wrap break-words text-[13px] leading-6">{m.content}</p>
+                      ) : (
+                        <CoachMarkdown text={m.content} />
+                      )}
+                      <div className={cn("mt-2 flex flex-wrap items-center gap-1.5", isUser && "justify-end")}>
+                        <span className="text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+                          {isUser ? t("common.you") : activePersona?.name ?? t("nav.coach")} ·{" "}
+                          {new Date(m.createdAt).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        {m.intent && (
+                          <TerminalBadge tone={m.safetyFlag ? "warn" : "ink"}>
+                            {INTENT_LABELS[m.intent] ?? m.intent}
+                          </TerminalBadge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {pendingReply && (
-              <div className="flex justify-start">
-                <div className="border border-terminal-green/40 bg-[#eef3ea] px-3 py-2 text-sm">
-                  <span className="font-mono text-status-ok">▊▊▊ coach processing…</span>
+              <div className="flex items-start gap-2 justify-start">
+                {activePersona && (
+                  <CoachAvatar name={activePersona.name} accent={coachAccent(activePersona.name)} className="mt-0.5 size-8 shrink-0" />
+                )}
+                <div className="rounded-2xl rounded-tl-sm border border-terminal-green/40 bg-[#eef3ea] px-3.5 py-2.5">
+                  <span className="flex items-center gap-1" aria-label={t("coach.processing")}>
+                    <span className="size-1.5 animate-bounce rounded-full bg-status-ok [animation-delay:-0.3s]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-status-ok [animation-delay:-0.15s]" />
+                    <span className="size-1.5 animate-bounce rounded-full bg-status-ok" />
+                  </span>
+                  <span className="mt-1 block text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                    {t("coach.processing")}
+                  </span>
                 </div>
               </div>
             )}
@@ -351,12 +387,12 @@ export default function Coach() {
           <div className="mt-3 flex flex-wrap gap-1.5 border-t border-border pt-3">
             {QUICK_ACTIONS.map((action) => (
               <button
-                key={action}
-                onClick={() => handleSend(QUICK_PROMPTS[action])}
+                key={action.labelKey}
+                onClick={() => handleSend(action.prompt)}
                 disabled={sending || !conversationId}
                 className="border border-border bg-secondary/50 px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-terminal-green/50 hover:bg-[#eef3ea] hover:text-status-ok disabled:opacity-50"
               >
-                {action}
+                {t(action.labelKey)}
               </button>
             ))}
           </div>
@@ -386,7 +422,7 @@ export default function Coach() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={conversationId ? "Type your message…" : "Initializing session…"}
+              placeholder={conversationId ? t("coach.placeholder") : t("coach.initializing")}
               disabled={!conversationId || sending}
               className="rounded-none"
             />
@@ -395,7 +431,7 @@ export default function Coach() {
               className="rounded-none text-[11px] uppercase tracking-[0.14em]"
               disabled={!conversationId || sending || !input.trim()}
             >
-              SEND →
+              {t("coach.send")}
             </Button>
           </form>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">

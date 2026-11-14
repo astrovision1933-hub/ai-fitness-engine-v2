@@ -297,6 +297,7 @@ const schema = defineSchema(
       communicationStyle: v.optional(v.string()), // concise | detailed | motivational
       units: v.string(), // metric | imperial
       coachPersonaSlug: v.optional(v.string()),
+      preferredLanguage: v.optional(v.string()), // en | hi | hinglish
     }).index("by_user", ["userId"]),
 
     aiMemory: defineTable({

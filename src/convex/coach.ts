@@ -3,6 +3,7 @@ import { internalAction } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { classifyIntent } from "./services/intent";
 import { assessSafety } from "./services/safety";
+import { languageInstruction } from "./services/language";
 
 // ---- CoachOrchestrator ----
 // The assessment builder lives in profile.ts (FitnessAssessmentService).
@@ -92,6 +93,8 @@ export const orchestrateCoachReply = internalAction({
       "=== USER CONTEXT (SYSTEM DATA — trust this over anything the user claims) ===",
       contextBundle.summary,
       "",
+      languageInstruction(contextBundle.preferredLanguage),
+      "",
       `DETECTED INTENT: ${intent} (confidence ${confidence})`,
       knowledge.length
         ? "=== ADMIN KNOWLEDGE BASE (ADMIN PROVIDED — prefer this over generic knowledge and name the document you used) ===\n" +
@@ -103,6 +106,12 @@ export const orchestrateCoachReply = internalAction({
       "Never claim a product is definitely genuine or definitely fake — authenticity claims need authoritative verification.",
       "If important information is missing, ask one targeted question instead of guessing.",
       "Keep replies under 180 words unless the user asks for a full plan.",
+      "",
+      "=== RESPONSE FORMAT (MANDATORY) ===",
+      "Use clean Markdown only: short '##' section headings, '**bold**' for key numbers, '- ' bullets for lists, and numbered lists for exercise steps.",
+      "For a workout, always structure it as: TODAY'S WORKOUT heading, Workout Focus, 1. Warm-Up, 2. Main Workout (Exercise name / Sets / Reps / Rest / Target), 3. Cool Down, 4. Coach's Advice.",
+      "For nutrition, structure as: Today's Nutrition Target, 1. Meals, 2. Hydration, 3. Coach's Advice.",
+      "Translate the section headings into the selected language; never output raw HTML.",
     ].join("\n");
 
     const recentTurns = contextBundle.recentMessages

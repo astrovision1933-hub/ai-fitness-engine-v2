@@ -1,7 +1,9 @@
 import { useAuth } from "@/hooks/use-auth";
 import { SignOutButton } from "@/components/SignOutButton";
+import { LanguageSelector } from "@/components/language-selector";
+import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Link, NavLink, useLocation, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -28,48 +30,52 @@ import {
   X,
 } from "lucide-react";
 
-type NavItem = { to: string; label: string; icon: React.ComponentType<{ className?: string }> };
+type NavItem = {
+  to: string;
+  labelKey: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
 
 const MAIN_NAV: NavItem[] = [
-  { to: "/dashboard", label: "Home", icon: Home },
-  { to: "/coach", label: "AI Coach", icon: Bot },
-  { to: "/workout", label: "Workout", icon: Dumbbell },
-  { to: "/nutrition", label: "Nutrition", icon: Apple },
-  { to: "/progress", label: "Progress", icon: TrendingUp },
+  { to: "/dashboard", labelKey: "nav.home", icon: Home },
+  { to: "/coach", labelKey: "nav.coach", icon: Bot },
+  { to: "/workout", labelKey: "nav.workout", icon: Dumbbell },
+  { to: "/nutrition", labelKey: "nav.nutrition", icon: Apple },
+  { to: "/progress", labelKey: "nav.progress", icon: TrendingUp },
 ];
 
 const MODULE_NAV: NavItem[] = [
-  { to: "/supplements", label: "Supplements", icon: Pill },
-  { to: "/products", label: "Products", icon: Package },
-  { to: "/goals", label: "Goals", icon: Target },
-  { to: "/bodybuilding", label: "Competition", icon: Trophy },
-  { to: "/checkin", label: "Check-In", icon: ClipboardCheck },
-  { to: "/reports", label: "Reports", icon: FileText },
+  { to: "/supplements", labelKey: "nav.supplements", icon: Pill },
+  { to: "/products", labelKey: "nav.products", icon: Package },
+  { to: "/goals", labelKey: "nav.goals", icon: Target },
+  { to: "/bodybuilding", labelKey: "nav.competition", icon: Trophy },
+  { to: "/checkin", labelKey: "nav.checkin", icon: ClipboardCheck },
+  { to: "/reports", labelKey: "nav.reports", icon: FileText },
 ];
 
 const ACCOUNT_NAV: NavItem[] = [
-  { to: "/profile", label: "Profile", icon: User },
-  { to: "/settings", label: "Settings", icon: Settings },
-  { to: "/subscription", label: "Plan", icon: CreditCard },
+  { to: "/profile", labelKey: "nav.profile", icon: User },
+  { to: "/settings", labelKey: "nav.settings", icon: Settings },
+  { to: "/subscription", labelKey: "nav.plan", icon: CreditCard },
 ];
 
-const ADMIN_NAV: NavItem = { to: "/admin", label: "Admin", icon: ShieldCheck };
+const ADMIN_NAV: NavItem = { to: "/admin", labelKey: "nav.admin", icon: ShieldCheck };
 
 const SEARCH_INDEX = [
-  { label: "Dashboard", to: "/dashboard", keys: "home overview start" },
-  { label: "AI Coach", to: "/coach", keys: "chat bot assistant ask coach" },
-  { label: "Workout", to: "/workout", keys: "training plan exercise gym create" },
-  { label: "Nutrition", to: "/nutrition", keys: "diet food meal calories protein log" },
-  { label: "Progress", to: "/progress", keys: "stats charts tracking history" },
-  { label: "Supplements", to: "/supplements", keys: "label analyze verify stack" },
-  { label: "Products", to: "/products", keys: "compare market recommendations buy" },
-  { label: "Goals", to: "/goals", keys: "target aim" },
-  { label: "Competition", to: "/bodybuilding", keys: "bodybuilding contest prep stage" },
-  { label: "Check-In", to: "/checkin", keys: "daily log weigh in" },
-  { label: "Reports", to: "/reports", keys: "weekly monthly summary" },
-  { label: "Profile", to: "/profile", keys: "account body stats personal" },
-  { label: "Settings", to: "/settings", keys: "preferences privacy voice" },
-  { label: "Plan", to: "/subscription", keys: "premium upgrade trial billing price" },
+  { labelKey: "nav.home", to: "/dashboard", keys: "home overview start dashboard" },
+  { labelKey: "nav.coach", to: "/coach", keys: "chat bot assistant ask coach" },
+  { labelKey: "nav.workout", to: "/workout", keys: "training plan exercise gym create" },
+  { labelKey: "nav.nutrition", to: "/nutrition", keys: "diet food meal calories protein log" },
+  { labelKey: "nav.progress", to: "/progress", keys: "stats charts tracking history" },
+  { labelKey: "nav.supplements", to: "/supplements", keys: "label analyze verify stack" },
+  { labelKey: "nav.products", to: "/products", keys: "compare market recommendations buy" },
+  { labelKey: "nav.goals", to: "/goals", keys: "target aim" },
+  { labelKey: "nav.competition", to: "/bodybuilding", keys: "bodybuilding contest prep stage" },
+  { labelKey: "nav.checkin", to: "/checkin", keys: "daily log weigh in" },
+  { labelKey: "nav.reports", to: "/reports", keys: "weekly monthly summary" },
+  { labelKey: "nav.profile", to: "/profile", keys: "account body stats personal" },
+  { labelKey: "nav.settings", to: "/settings", keys: "preferences privacy voice" },
+  { labelKey: "nav.plan", to: "/subscription", keys: "premium upgrade trial billing price" },
 ];
 
 function EngineMark({ className }: { className?: string }) {
@@ -94,6 +100,7 @@ function EngineMark({ className }: { className?: string }) {
 
 function NavLinkRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => void }) {
   const Icon = item.icon;
+  const { t } = useI18n();
   return (
     <NavLink
       to={item.to}
@@ -115,7 +122,7 @@ function NavLinkRow({ item, onNavigate }: { item: NavItem; onNavigate?: () => vo
               isActive ? "text-[#0a1205]" : "text-muted-foreground group-hover:text-foreground",
             )}
           />
-          <span className="tracking-wide">{item.label}</span>
+          <span className="tracking-wide">{t(item.labelKey)}</span>
         </>
       )}
     </NavLink>
@@ -175,7 +182,6 @@ function SidebarBody({ isAdmin, planLabel, onNavigate }: { isAdmin: boolean; pla
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const isAdmin = user?.role === "admin";
 
   const notifications = useQuery(api.profile.getNotifications);
@@ -187,12 +193,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
 
-  // Close overlays on navigation.
-  useEffect(() => {
-    setDrawerOpen(false);
-    setMenuOpen(false);
-  }, [location.pathname]);
-
+  // Overlays close in the navigation handlers themselves (no state writes in
+  // effects on every route change).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -204,16 +206,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const { t } = useI18n();
+
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return SEARCH_INDEX.filter(
-      (r) => r.label.toLowerCase().includes(q) || r.keys.includes(q),
+      (r) => t(r.labelKey).toLowerCase().includes(q) || r.keys.includes(q),
     ).slice(0, 6);
-  }, [query]);
+  }, [query, t]);
 
   function runSearch(to: string) {
     setQuery("");
+    setMenuOpen(false);
+    setDrawerOpen(false);
     navigate(to);
   }
 
@@ -268,7 +274,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && results[0]) runSearch(results[0].to);
               }}
-              placeholder="Search workouts, diet, supplements, goals..."
+              placeholder={t("nav.search")}
               aria-label="Search the engine"
               className="h-10 w-full rounded-full border border-border bg-secondary/60 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-all duration-200 focus:border-primary/40 focus:bg-secondary focus:shadow-[0_0_0_3px_rgba(163,230,53,0.12)]"
             />
@@ -281,7 +287,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       onClick={() => runSearch(r.to)}
                     >
                       <Search className="size-3.5 text-primary" aria-hidden />
-                      {r.label}
+                      {t(r.labelKey)}
                     </button>
                   </li>
                 ))}
@@ -290,6 +296,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-2 sm:gap-3">
+            <LanguageSelector />
             <button
               className="relative rounded-lg border border-border p-2 text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-foreground"
               onClick={() => navigate("/dashboard")}
@@ -333,10 +340,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         key={item.to}
                         role="menuitem"
                         className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-foreground/90 transition-colors hover:bg-primary/10 hover:text-[#dcff8a]"
-                        onClick={() => navigate(item.to)}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          navigate(item.to);
+                        }}
                       >
                         <item.icon className="size-4 text-primary" aria-hidden />
-                        {item.label}
+                        {t(item.labelKey)}
                       </button>
                     ))}
                     {isAdmin && (
@@ -398,7 +408,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }
             >
               <item.icon className="size-5" />
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
           <button
