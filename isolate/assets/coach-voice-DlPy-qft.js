@@ -1,0 +1,1 @@
+const n=new Set(["RHEA","ATHENA"]);function o(t){const r=(t??"").trim().toUpperCase();return r?n.has(r)?"Ms.":r==="COACH PRIME"?"Coach":"Mr.":"Coach"}function c(t){const r=(t??"").trim();if(!r)return"COACH";if(/^(mr|ms|mrs|coach)\.?\s/i.test(r))return r.toUpperCase();const e=o(r);return e==="Coach"?r.toUpperCase():`${e} ${r.toUpperCase()}`}export{c};
