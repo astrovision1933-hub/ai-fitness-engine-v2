@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
@@ -59,6 +59,28 @@ async function requireAdminQuery(ctx: QueryCtx) {
   if (!user || user.role !== "admin" || user.disabled) throw new Error("Admin access required");
   return user;
 }
+
+/**
+ * Raw provider config for the AI action. Internal only — the keys never reach
+ * the browser; the admin UI reads the masked status query below.
+ */
+export const readProviderSettings = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const [openrouterKey, openrouterModel, geminiKey, geminiModel] = await Promise.all([
+      readSetting(ctx, OPENROUTER_KEY_SETTING),
+      readSetting(ctx, OPENROUTER_MODEL_SETTING),
+      readSetting(ctx, GEMINI_KEY_SETTING),
+      readSetting(ctx, GEMINI_MODEL_SETTING),
+    ]);
+    return {
+      openrouterKey: (openrouterKey ?? "").trim(),
+      openrouterModel: (openrouterModel ?? "").trim(),
+      geminiKey: (geminiKey ?? "").trim(),
+      geminiModel: (geminiModel ?? "").trim(),
+    };
+  },
+});
 
 export const getAiProviderStatus = query({
   args: {},
@@ -134,6 +156,34 @@ export const saveGeminiModel = mutation({
     const value = args.model?.trim() || "";
     await writeSetting(ctx, GEMINI_MODEL_SETTING, value);
     return { ok: true };
+  },
+});
+
+/**
+ * One-time key bootstrap from the CLI (`convex run`). Accepts the provider slug
+ * and the secret so a key can be installed without a browser session; the key
+ * lands in appSettings and is read by the AI action at runtime.
+ */
+export const setProviderKeyInternal = internalMutation({
+  args: {
+    provider: v.union(v.literal("openrouter"), v.literal("gemini")),
+    key: v.string(),
+    model: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const value = args.key.trim();
+    if (!/^[A-Za-z0-9_-]{8,}$/.test(value)) throw new Error("That key does not look valid");
+
+    const keySetting = args.provider === "openrouter" ? OPENROUTER_KEY_SETTING : GEMINI_KEY_SETTING;
+    const modelSetting = args.provider === "openrouter" ? OPENROUTER_MODEL_SETTING : GEMINI_MODEL_SETTING;
+    await writeSetting(ctx, keySetting, value);
+    if (args.model !== undefined) await writeSetting(ctx, modelSetting, args.model.trim());
+
+    return {
+      provider: args.provider,
+      saved: true,
+      masked: args.provider === "openrouter" ? maskApiKey(value) : maskGeminiKey(value),
+    };
   },
 });
 

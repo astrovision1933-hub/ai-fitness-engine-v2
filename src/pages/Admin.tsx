@@ -236,7 +236,6 @@ function AdminConsole() {
   const settings = useQuery(api.admin.listSettings, {});
   const audit = useQuery(api.admin.listAuditLogs, {});
   const safety = useQuery(api.admin.getSafetyOverview, {});
-  const aiProviderStatus = useQuery(api.aiProviderAdmin.getAiProviderStatus, {});
 
   const setUserDisabled = useMutation(api.admin.setUserDisabled);
   const setUserRole = useMutation(api.admin.setUserRole);
@@ -256,7 +255,6 @@ function AdminConsole() {
   const [coachForm, setCoachForm] = useState({ slug: "", name: "", role: "", personality: "", communicationStyle: "", expertise: "", philosophy: "", systemInstructions: "", isActive: true });
   const [kForm, setKForm] = useState({ title: "", category: "fitness", content: "", source: "" });
   const [ruleForm, setRuleForm] = useState({ name: "", goal: "", category: "", budgetLevel: "", enabled: true });
-
 
   async function act(fn: () => Promise<unknown>, ok: string) {
     try {
@@ -951,114 +949,76 @@ function AdminConsole() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* AI providers — keys, model overrides and fallback behavior          */
+/* ------------------------------------------------------------------ */
+
 function AiProvidersPanel() {
-  const aiProviderStatus = useQuery(api.aiProviderAdmin.getAiProviderStatus, {});
-  const [openrouterKey, setOpenrouterKey] = useState("");
-  const [openrouterModel, setOpenrouterModel] = useState("");
-  const [geminiKey, setGeminiKey] = useState("");
-  const [geminiModel, setGeminiModel] = useState("");
-
-  const saveOpenRouterKeyM = useMutation(api.aiProviderAdmin.saveOpenRouterKey);
-  const saveOpenRouterModelM = useMutation(api.aiProviderAdmin.saveOpenRouterModel);
-  const saveGeminiKeyM = useMutation(api.aiProviderAdmin.saveGeminiKey);
-  const saveGeminiModelM = useMutation(api.aiProviderAdmin.saveGeminiModel);
-
-  async function saveOpenrouterKey() {
-    await saveOpenRouterKeyM({ key: openrouterKey || undefined }).catch((e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"));
-  }
-
-  async function saveOpenrouterModel() {
-    await saveOpenRouterModelM({ model: openrouterModel || undefined }).catch((e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"));
-  }
-
-  async function saveGeminiKey() {
-    await saveGeminiKeyM({ key: geminiKey || undefined }).catch((e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"));
-  }
-
-  async function saveGeminiModel() {
-    await saveGeminiModelM({ model: geminiModel || undefined }).catch((e: unknown) => toast.error(e instanceof Error ? e.message : "Could not save"));
-  }
+  const status = useQuery(api.aiProviderAdmin.getAiProviderStatus, {});
 
   return (
     <div className="space-y-4">
       <Panel>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-              <StatusDot pulse /> AI ROUTING · PROVIDER KEYS & MODEL OVERRIDES
-            </p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight">AI Providers</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              OpenRouter free models are the first preference and are fetched live, so new free models join automatically.
-              Gemini is the immediate fallback when OpenRouter is unavailable; the fastest healthy model wins each turn.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-none text-[9px] uppercase tracking-[0.12em]"
-            onClick={() => toast.info("Keys set in Keys → API keys are used automatically by the AI action.")}
-            disabled={false}
-          >
-            ENV READY
-          </Button>
-        </div>
+        <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+          <StatusDot pulse /> AI ROUTING · PROVIDERS / KEYS / FALLBACK
+        </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">AI Providers</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          OpenRouter free models serve every reply first, fastest measured model first. Gemini answers the moment
+          OpenRouter is unavailable or rate limited. New free models OpenRouter publishes are picked up automatically —
+          no deploy needed.
+        </p>
       </Panel>
 
       <AiProviderCard
+        provider="openrouter"
         icon={<Wifi className="size-4" />}
         title="OPENROUTER"
-        subtitle="1st preference — free models, fastest-first"
-        configured={aiProviderStatus?.openrouter?.configured ?? false}
-        masked={aiProviderStatus?.openrouter?.masked ?? ""}
-        modelOverride={aiProviderStatus?.openrouter?.modelOverride ?? ""}
-        key={aiProviderStatus?.openrouter?.masked ?? "openrouter-empty"}
-        onKeyChange={setOpenrouterKey}
-        onModelChange={setOpenrouterModel}
-        onSaveKey={saveOpenrouterKey}
-        onSaveModel={saveOpenrouterModel}
+        subtitle="1st preference — live free-model catalog, fastest first"
+        configured={status?.openrouter.configured ?? false}
+        masked={status?.openrouter.masked ?? null}
+        modelOverride={status?.openrouter.modelOverride ?? ""}
+        modelPlaceholder="openrouter/free or a specific :free model"
+        hint="Leave the override empty to let the engine pick the fastest healthy free model and re-rank itself as new models appear."
       />
 
       <AiProviderCard
+        provider="gemini"
         icon={<Cpu className="size-4" />}
         title="GEMINI"
-        subtitle="2nd preference — immediate fallback"
-        configured={aiProviderStatus?.gemini?.configured ?? false}
-        masked={aiProviderStatus?.gemini?.masked ?? ""}
-        modelOverride={aiProviderStatus?.gemini?.modelOverride ?? ""}
-        key={aiProviderStatus?.gemini?.masked ?? "gemini-empty"}
-        onKeyChange={setGeminiKey}
-        onModelChange={setGeminiModel}
-        onSaveKey={saveGeminiKey}
-        onSaveModel={saveGeminiModel}
+        subtitle="2nd preference — instant fallback"
+        configured={status?.gemini.configured ?? false}
+        masked={status?.gemini.masked ?? null}
+        modelOverride={status?.gemini.modelOverride ?? ""}
+        modelPlaceholder="gemini-2.5-flash"
+        hint="Used only when every OpenRouter attempt fails. Leave empty to use the fastest healthy Gemini chat model."
       />
 
-      <Panel title="PROVIDER FALLBACK BEHAVIOR" subtitle="what happens when a provider fails">
+      <Panel title="FALLBACK BEHAVIOR" subtitle="what happens the instant a provider fails">
         <div className="space-y-2 text-xs">
           <div className="flex items-start gap-2 border border-border bg-card p-3">
-            <Eye className="mt-0.5 size-4 shrink-0 text-status-ok" />
+            <Zap className="mt-0.5 size-4 shrink-0 text-status-ok" />
             <div>
-              <p className="font-semibold uppercase tracking-wider">OpenRouter fails or is rate limited</p>
+              <p className="font-semibold uppercase tracking-wider">OpenRouter model fails or is rate limited</p>
               <p className="text-muted-foreground">
-                That model is skipped for 2 minutes and the next fastest free model answers immediately. If every
-                OpenRouter attempt fails, the engine falls through to Gemini without waiting.
+                That model is cooled down for 2 minutes and the next fastest free model answers immediately — no retry
+                wait. Up to 3 free models are tried per reply.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-2 border border-border bg-card p-3">
-            <Zap className="mt-0.5 size-4 shrink-0 text-status-warn" />
+            <Eye className="mt-0.5 size-4 shrink-0 text-status-warn" />
             <div>
-              <p className="font-semibold uppercase tracking-wider">Gemini fallback when OpenRouter is down</p>
+              <p className="font-semibold uppercase tracking-wider">All OpenRouter attempts fail → Gemini</p>
               <p className="text-muted-foreground">
-                Gemini is tried next using its fastest healthy chat model. A retired or failing Gemini model is
-                skipped and the next Gemini model answers instantly. If Gemini also fails, the engine uses the
-                platform default (VLY_INTEGRATION_KEY) if it is configured.
+                Gemini takes over in the same request with its fastest healthy chat model. A retired Gemini model is
+                skipped instantly. If Gemini also fails, the platform default (VLY_INTEGRATION_KEY) is the last resort.
               </p>
             </div>
           </div>
           <p className="text-muted-foreground">
-            Keys are stored in Convex appSettings and mirrored to process.env by the AI action and the SYNC ENV NOW button.
-            Set the real keys in Keys → API keys first; this panel only controls model overrides and shows masked status.
+            Keys are stored server-side in Convex and never sent to the browser; this panel only shows the masked tail.
+            Reply telemetry (latency per model) is recorded so the fastest model keeps the first slot.
           </p>
         </div>
       </Panel>
@@ -1067,112 +1027,119 @@ function AiProvidersPanel() {
 }
 
 function AiProviderCard({
+  provider,
   icon,
   title,
   subtitle,
   configured,
   masked,
   modelOverride,
-  key,
-  onKeyChange,
-  onModelChange,
-  onSaveKey,
-  onSaveModel,
+  modelPlaceholder,
+  hint,
 }: {
+  provider: "openrouter" | "gemini";
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   configured: boolean;
-  masked: string;
+  masked: string | null;
   modelOverride: string;
-  key: string;
-  onKeyChange: (value: string) => void;
-  onModelChange: (value: string) => void;
-  onSaveKey: () => Promise<void>;
-  onSaveModel: () => Promise<void>;
+  modelPlaceholder: string;
+  hint: string;
 }) {
-  const [savingKey, setSavingKey] = useState(false);
-  const [savingModel, setSavingModel] = useState(false);
+  const saveOpenRouterKey = useMutation(api.aiProviderAdmin.saveOpenRouterKey);
+  const saveGeminiKey = useMutation(api.aiProviderAdmin.saveGeminiKey);
+  const saveOpenRouterModel = useMutation(api.aiProviderAdmin.saveOpenRouterModel);
+  const saveGeminiModel = useMutation(api.aiProviderAdmin.saveGeminiModel);
+
+  const saveKey = provider === "openrouter" ? saveOpenRouterKey : saveGeminiKey;
+  const saveModel = provider === "openrouter" ? saveOpenRouterModel : saveGeminiModel;
+
+  const [keyDraft, setKeyDraft] = useState("");
+  const [modelDraft, setModelDraft] = useState(modelOverride);
+  const [busy, setBusy] = useState<"key" | "model" | null>(null);
 
   async function handleSaveKey() {
-    setSavingKey(true);
+    const value = keyDraft.trim();
+    if (!value) return;
+    setBusy("key");
     try {
-      await onSaveKey();
-      toast.success(`${title} key saved`);
-    } catch {
-      // error toast is shown by the mutation
+      await saveKey({ key: value });
+      setKeyDraft("");
+      toast.success(`${title} key saved — replies use it immediately`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the key");
     } finally {
-      setSavingKey(false);
+      setBusy(null);
     }
   }
 
   async function handleSaveModel() {
-    setSavingModel(true);
+    setBusy("model");
     try {
-      await onSaveModel();
-      toast.success(`${title} model override saved`);
-    } catch {
-      // error toast is shown by the mutation
+      await saveModel({ model: modelDraft.trim() || undefined });
+      toast.success(
+        modelDraft.trim() ? `${title} pinned to ${modelDraft.trim()}` : `${title} back to automatic fastest model`,
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the model");
     } finally {
-      setSavingModel(false);
+      setBusy(null);
     }
   }
 
   return (
-    <Panel title={title} subtitle={subtitle}>
-      <div className="grid gap-3 sm:grid-cols-2">
+    <Panel
+      title={title}
+      subtitle={subtitle}
+      right={<TerminalBadge tone={configured ? "ok" : "warn"}>{configured ? "KEY ACTIVE" : "NO KEY"}</TerminalBadge>}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">API KEY</label>
           <div className="mt-1 flex gap-2">
             <Input
-              value={key}
-              onChange={(e) => onKeyChange(e.target.value)}
-              placeholder={configured ? masked : "Paste key here"}
+              type="password"
+              value={keyDraft}
+              onChange={(e) => setKeyDraft(e.target.value)}
+              placeholder={masked ?? "Paste the API key"}
               className="rounded-none font-mono text-xs"
-              disabled={configured}
             />
             <Button
               size="sm"
               variant="outline"
-              className="rounded-none text-[9px] uppercase"
+              className="rounded-none text-[9px] uppercase tracking-[0.1em]"
               onClick={handleSaveKey}
-              disabled={savingKey || (!key && !configured)}
+              disabled={busy !== null || !keyDraft.trim()}
             >
-              {savingKey ? "SAVING…" : configured ? "MATCHED" : "SAVE KEY"}
+              {busy === "key" ? "SAVING…" : "SAVE"}
             </Button>
           </div>
-          {configured && (
-            <p className="mt-1 text-[10px] text-status-ok">Configured · value masked · paste in Keys → API keys to replace</p>
-          )}
-          {!configured && (
-            <p className="mt-1 text-[10px] text-muted-foreground">Add the real key under Keys → API keys, then come back and save it here.</p>
-          )}
+          <p className={`mt-1 text-[10px] ${configured ? "text-status-ok" : "text-muted-foreground"}`}>
+            {configured ? `Stored server-side · ${masked}` : "Not configured yet — paste a key to activate this provider"}
+          </p>
         </div>
+
         <div>
           <label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">MODEL OVERRIDE</label>
           <div className="mt-1 flex gap-2">
             <Input
-              value={modelOverride}
-              onChange={(e) => onModelChange(e.target.value)}
-              placeholder={title === "OPENROUTER" ? "e.g. openrouter/free" : "e.g. gemini-2.5-flash"}
+              value={modelDraft}
+              onChange={(e) => setModelDraft(e.target.value)}
+              placeholder={modelPlaceholder}
               className="rounded-none font-mono text-xs"
             />
             <Button
               size="sm"
               variant="outline"
-              className="rounded-none text-[9px] uppercase"
+              className="rounded-none text-[9px] uppercase tracking-[0.1em]"
               onClick={handleSaveModel}
-              disabled={savingModel}
+              disabled={busy !== null}
             >
-              {savingModel ? "SAVING…" : "SAVE MODEL"}
+              {busy === "model" ? "SAVING…" : "SAVE"}
             </Button>
           </div>
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Leave empty to use the fastest free model automatically. Set this only if you want to pin a specific model.
-          </p>
-          {modelOverride && (
-            <p className="mt-1 text-[10px] text-status-ok">Override: {modelOverride}</p>
-          )}
+          <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p>
         </div>
       </div>
     </Panel>

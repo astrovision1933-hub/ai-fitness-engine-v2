@@ -1,5 +1,4 @@
 import { action, internalMutation, internalQuery } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { createVlyIntegrations } from "@vly-ai/integrations";
@@ -46,48 +45,35 @@ const OPENROUTER_MODEL_ENV = process.env.OPENROUTER_MODEL?.trim() || "";
 const GEMINI_KEY_ENV = process.env.GEMINI_API_KEY?.trim() || "";
 const GEMINI_MODEL_ENV = process.env.GEMINI_MODEL?.trim() || "";
 
-const OPENROUTER_KEY_SETTING = "openrouter_api_key";
-const OPENROUTER_MODEL_SETTING = "openrouter_model";
-const GEMINI_KEY_SETTING = "gemini_api_key";
-const GEMINI_MODEL_SETTING = "gemini_model";
-
-const resolveOpenRouterKey = async (ctx: MutationCtx): Promise<string> => {
-  if (OPENROUTER_KEY_ENV) return OPENROUTER_KEY_ENV;
-  const row = await ctx.db
-    .query("appSettings")
-    .withIndex("by_key", (q) => q.eq("key", OPENROUTER_KEY_SETTING))
-    .first();
-  return (row?.value ?? "").trim();
+type ProviderSettings = {
+  openrouterKey: string;
+  openrouterModel: string | undefined;
+  geminiKey: string;
+  geminiModel: string | undefined;
 };
 
-const resolveOpenRouterModel = async (ctx: MutationCtx): Promise<string | undefined> => {
-  if (OPENROUTER_MODEL_ENV) return OPENROUTER_MODEL_ENV;
-  const row = await ctx.db
-    .query("appSettings")
-    .withIndex("by_key", (q) => q.eq("key", OPENROUTER_MODEL_SETTING))
-    .first();
-  const value = (row?.value ?? "").trim();
-  return value || undefined;
-};
+/**
+ * Deployment env vars win, otherwise the keys saved from the admin console
+ * (Convex appSettings) are used. Actions have no db handle, so the settings are
+ * read through an internal query.
+ */
+async function loadProviderSettings(ctx: {
+  runQuery: (
+    ref: typeof internal.aiProviderAdmin.readProviderSettings,
+    args: Record<string, never>,
+  ) => Promise<{ openrouterKey: string; openrouterModel: string; geminiKey: string; geminiModel: string }>;
+}): Promise<ProviderSettings> {
+  const stored = await ctx
+    .runQuery(internal.aiProviderAdmin.readProviderSettings, {})
+    .catch(() => null);
 
-const resolveGeminiKey = async (ctx: MutationCtx): Promise<string> => {
-  if (GEMINI_KEY_ENV) return GEMINI_KEY_ENV;
-  const row = await ctx.db
-    .query("appSettings")
-    .withIndex("by_key", (q) => q.eq("key", GEMINI_KEY_SETTING))
-    .first();
-  return (row?.value ?? "").trim();
-};
-
-const resolveGeminiModel = async (ctx: MutationCtx): Promise<string | undefined> => {
-  if (GEMINI_MODEL_ENV) return GEMINI_MODEL_ENV;
-  const row = await ctx.db
-    .query("appSettings")
-    .withIndex("by_key", (q) => q.eq("key", GEMINI_MODEL_SETTING))
-    .first();
-  const value = (row?.value ?? "").trim();
-  return value || undefined;
-};
+  return {
+    openrouterKey: OPENROUTER_KEY_ENV || stored?.openrouterKey || "",
+    openrouterModel: OPENROUTER_MODEL_ENV || stored?.openrouterModel || undefined,
+    geminiKey: GEMINI_KEY_ENV || stored?.geminiKey || "",
+    geminiModel: GEMINI_MODEL_ENV || stored?.geminiModel || undefined,
+  };
+}
 
 /**
  * Seed order used only to break ties between models that have no measured
@@ -95,21 +81,26 @@ const resolveGeminiModel = async (ctx: MutationCtx): Promise<string | undefined>
  * catalog is the source of truth, so new free models join the pool by
  * themselves and then earn their position through measured latency.
  */
+/**
+ * Ordered by measured first-reply latency against this project's own prompts
+ * (fastest first). Only used as a tie-break prior before real telemetry exists;
+ * the live free catalog stays the source of truth.
+ */
 const FAST_FREE_MODELS = [
-  "inclusionai/ling-3.2-flash:free",
-  "nvidia/nemotron-3.5-lightning:free",
-  "baidu/ernie-5.5-flash-preview:free",
-  "liquid/lfm-3-1.7b:free",
-  "thinkingmachines/inkling-2-small:free",
+  "cohere/north-mini-code:free",
+  "nvidia/nemotron-3.5-super-vl:free",
   "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "nvidia/nemotron-3.5-lightning:free",
+  "recursive/flint-v1.0:free",
+  "dots-studio/dots-3-note-preview:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "inclusionai/ling-3.2-flash:free",
+  "liquid/lfm-3-1.7b:free",
+  "particle-ai/particle-1:free",
   "google/gemma-4-26b-a4b-it:free",
   "google/gemma-4-31b-it:free",
-  "cohere/north-mini-code:free",
-  "dots-studio/dots-3-note-preview:free",
-  "recursive/flint-v1.0:free",
-  "particle-ai/particle-1:free",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "nvidia/nemotron-3.5-super-vl:free",
+  "thinkingmachines/inkling-2-small:free",
   "openrouter/free",
 ];
 
@@ -472,9 +463,10 @@ export const aiComplete = action({
     // 1. OpenRouter free models — fastest measured model first. Each failure
     // records the failure and immediately moves to the next model, so a
     // rate-limited model never stalls the reply.
-    const openrouterKey = await resolveOpenRouterKey(ctx as unknown as MutationCtx);
+    const settings = await loadProviderSettings(ctx);
+    const openrouterKey = settings.openrouterKey;
     if (openrouterKey) {
-      const forcedModel = await resolveOpenRouterModel(ctx as unknown as MutationCtx);
+      const forcedModel = settings.openrouterModel;
       const models = await discoverOpenRouterFreeModels();
       const stats = await ctx
         .runQuery(internal.services.aiProvider.listModelStats, { provider: "openrouter" })
@@ -522,9 +514,9 @@ export const aiComplete = action({
 
     // 2. Gemini free tier — model-level fallback so a retired model does not
     // take the whole provider down.
-    const geminiKey = await resolveGeminiKey(ctx as unknown as MutationCtx);
+    const geminiKey = settings.geminiKey;
     if (geminiKey) {
-      const forcedModel = await resolveGeminiModel(ctx as unknown as MutationCtx);
+      const forcedModel = settings.geminiModel;
       const available = await discoverGeminiModels(geminiKey);
       const chain = forcedModel
         ? [forcedModel, ...available.filter((model) => model !== forcedModel)]
