@@ -104,11 +104,14 @@ const FAST_FREE_MODELS = [
   "openrouter/free",
 ];
 
+/** Measured-fastest Gemini chat models, used only until the live list loads. */
 const GEMINI_FALLBACK_MODELS = [
-  "gemini-3.8-flash",
-  "gemini-3.8-flash-lite",
-  "gemini-2.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-flash-lite-latest",
   "gemini-2.5-flash-lite",
+  "gemini-3.5-flash",
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
 ];
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -275,7 +278,14 @@ async function discoverGeminiModels(key: string): Promise<string[]> {
       .filter((entry) => (entry.supportedGenerationMethods ?? []).includes("generateContent"))
       .map((entry) => (entry.name ?? "").replace(/^models\//, ""))
       .filter((id) => id.startsWith("gemini-"))
-      .filter((id) => !/(embedding|embed|tts|image|audio|live|robotics)/i.test(id));
+      // Drop non-chat modalities: embeddings, TTS, image/music generators,
+      // robotics/computer-use and deep-research agents.
+      .filter(
+        (id) =>
+          !/(embedding|embed|tts|image|audio|live|robotics|lyria|nano-banana|deep-research|antigravity|computer-use|transcribe)/i.test(
+            id,
+          ),
+      );
 
     if (!models.length) throw new Error("no Gemini chat models available");
 

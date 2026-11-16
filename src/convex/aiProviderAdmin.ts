@@ -36,7 +36,7 @@ function maskApiKey(raw: string | null): string | null {
 
 function maskGeminiKey(raw: string | null): string | null {
   if (!raw) return null;
-  return raw.length > 8 ? `AIza...${raw.slice(-4)}` : raw.slice(0, 4) + "****";
+  return raw.length > 8 ? `...${raw.slice(-4)}` : raw.slice(0, 4) + "****";
 }
 
 const ADMIN_UNLOCK_WINDOW_MS = 12 * 60 * 60 * 1000;
@@ -141,7 +141,8 @@ export const saveGeminiKey = mutation({
   handler: async (ctx, args) => {
     await requireAdminMutation(ctx);
     const value = args.key?.trim() || "";
-    if (value && !/^[a-zA-Z0-9_-]{8,}$/.test(value)) {
+    // Google AI Studio keys come as both "AIza…" and "AQ.…" — dots are valid.
+    if (value && !/^[A-Za-z0-9._-]{8,}$/.test(value)) {
       throw new Error("Gemini key does not look right — check Settings → API keys.");
     }
     await writeSetting(ctx, GEMINI_KEY_SETTING, value);
@@ -172,7 +173,7 @@ export const setProviderKeyInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const value = args.key.trim();
-    if (!/^[A-Za-z0-9_-]{8,}$/.test(value)) throw new Error("That key does not look valid");
+    if (!/^[A-Za-z0-9._-]{8,}$/.test(value)) throw new Error("That key does not look valid");
 
     const keySetting = args.provider === "openrouter" ? OPENROUTER_KEY_SETTING : GEMINI_KEY_SETTING;
     const modelSetting = args.provider === "openrouter" ? OPENROUTER_MODEL_SETTING : GEMINI_MODEL_SETTING;
