@@ -862,6 +862,21 @@ const schema = defineSchema(
       value: v.string(),
       updatedAt: v.number(),
     }).index("by_key", ["key"]),
+
+    // AI routing telemetry: rolling reply latency per free model so the
+    // fastest model keeps the first slot and failing models cool down.
+    aiModelStats: defineTable({
+      provider: v.string(), // openrouter | gemini
+      model: v.string(),
+      avgLatencyMs: v.number(),
+      samples: v.number(),
+      failures: v.number(),
+      lastLatencyMs: v.optional(v.number()),
+      lastUsedAt: v.number(),
+      lastFailedAt: v.optional(v.number()),
+    })
+      .index("by_provider", ["provider"])
+      .index("by_provider_model", ["provider", "model"]),
   },
   {
     schemaValidation: false,
