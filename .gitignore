@@ -5,3 +5,6 @@
 node_modules
 dist
 src/convex/_generated
+isolate
+.DS_Store
+*.log
