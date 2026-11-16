@@ -1,4 +1,5 @@
 import { action, internalMutation, internalQuery } from "../_generated/server";
+import type { MutationCtx } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { v } from "convex/values";
 import { createVlyIntegrations } from "@vly-ai/integrations";
@@ -39,6 +40,54 @@ const MAX_OPENROUTER_ATTEMPTS = 3;
 const MAX_GEMINI_ATTEMPTS = 2;
 const FAILURE_COOLDOWN_MS = 2 * 60_000;
 const UNMEASURED_LATENCY_MS = 3_000;
+
+const OPENROUTER_KEY_ENV = process.env.OPENROUTER_API_KEY?.trim() || "";
+const OPENROUTER_MODEL_ENV = process.env.OPENROUTER_MODEL?.trim() || "";
+const GEMINI_KEY_ENV = process.env.GEMINI_API_KEY?.trim() || "";
+const GEMINI_MODEL_ENV = process.env.GEMINI_MODEL?.trim() || "";
+
+const OPENROUTER_KEY_SETTING = "openrouter_api_key";
+const OPENROUTER_MODEL_SETTING = "openrouter_model";
+const GEMINI_KEY_SETTING = "gemini_api_key";
+const GEMINI_MODEL_SETTING = "gemini_model";
+
+const resolveOpenRouterKey = async (ctx: MutationCtx): Promise<string> => {
+  if (OPENROUTER_KEY_ENV) return OPENROUTER_KEY_ENV;
+  const row = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q) => q.eq("key", OPENROUTER_KEY_SETTING))
+    .first();
+  return (row?.value ?? "").trim();
+};
+
+const resolveOpenRouterModel = async (ctx: MutationCtx): Promise<string | undefined> => {
+  if (OPENROUTER_MODEL_ENV) return OPENROUTER_MODEL_ENV;
+  const row = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q) => q.eq("key", OPENROUTER_MODEL_SETTING))
+    .first();
+  const value = (row?.value ?? "").trim();
+  return value || undefined;
+};
+
+const resolveGeminiKey = async (ctx: MutationCtx): Promise<string> => {
+  if (GEMINI_KEY_ENV) return GEMINI_KEY_ENV;
+  const row = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q) => q.eq("key", GEMINI_KEY_SETTING))
+    .first();
+  return (row?.value ?? "").trim();
+};
+
+const resolveGeminiModel = async (ctx: MutationCtx): Promise<string | undefined> => {
+  if (GEMINI_MODEL_ENV) return GEMINI_MODEL_ENV;
+  const row = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q) => q.eq("key", GEMINI_MODEL_SETTING))
+    .first();
+  const value = (row?.value ?? "").trim();
+  return value || undefined;
+};
 
 /**
  * Seed order used only to break ties between models that have no measured
@@ -423,9 +472,9 @@ export const aiComplete = action({
     // 1. OpenRouter free models — fastest measured model first. Each failure
     // records the failure and immediately moves to the next model, so a
     // rate-limited model never stalls the reply.
-    if (process.env.OPENROUTER_API_KEY) {
-      const key = process.env.OPENROUTER_API_KEY;
-      const forcedModel = process.env.OPENROUTER_MODEL?.trim() || undefined;
+    const openrouterKey = await resolveOpenRouterKey(ctx as unknown as MutationCtx);
+    if (openrouterKey) {
+      const forcedModel = await resolveOpenRouterModel(ctx as unknown as MutationCtx);
       const models = await discoverOpenRouterFreeModels();
       const stats = await ctx
         .runQuery(internal.services.aiProvider.listModelStats, { provider: "openrouter" })
@@ -439,7 +488,7 @@ export const aiComplete = action({
         const startedAt = Date.now();
         try {
           const text = await completeWithOpenRouter(
-            key,
+            openrouterKey,
             model,
             args.system,
             args.messages,
@@ -473,10 +522,10 @@ export const aiComplete = action({
 
     // 2. Gemini free tier — model-level fallback so a retired model does not
     // take the whole provider down.
-    if (process.env.GEMINI_API_KEY) {
-      const key = process.env.GEMINI_API_KEY;
-      const forcedModel = process.env.GEMINI_MODEL?.trim() || undefined;
-      const available = await discoverGeminiModels(key);
+    const geminiKey = await resolveGeminiKey(ctx as unknown as MutationCtx);
+    if (geminiKey) {
+      const forcedModel = await resolveGeminiModel(ctx as unknown as MutationCtx);
+      const available = await discoverGeminiModels(geminiKey);
       const chain = forcedModel
         ? [forcedModel, ...available.filter((model) => model !== forcedModel)]
         : available;
@@ -487,7 +536,7 @@ export const aiComplete = action({
 
         try {
           const text = await completeWithGemini(
-            key,
+            geminiKey,
             model,
             args.system,
             args.messages,
